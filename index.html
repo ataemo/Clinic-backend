@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<title>ຫລັງບ້ານ - Clinic Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{
+  --primary:#0f766e;
+  --accent:#c9a227;
+  --bg:#f6f8f9;
+  --surface:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --border:#e6e9ec;
+  --radius:16px;
+  --shadow:0 8px 24px rgba(15,23,42,.06);
+  --danger:#e11d48;
+  --success:#16a34a;
+  --warn:#d97706;
+}
+[data-theme="dark"]{
+  --bg:#0b1220;
+  --surface:#131c2e;
+  --text:#e8edf3;
+  --muted:#94a3b8;
+  --border:#233047;
+  --shadow:0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Noto Sans Lao','Inter',sans-serif;background:var(--bg);color:var(--text);transition:background .2s,color .2s;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;}
+
+/* ===== LOGIN ===== */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary),#0b3d3a 60%, #052a27);padding:20px;}
+.login-card{background:var(--surface);width:100%;max-width:400px;border-radius:24px;padding:40px 32px;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center;}
+.login-logo{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px;color:#fff;}
+.login-card h1{font-size:20px;margin:0 0 4px;}
+.login-card p{color:var(--muted);font-size:13px;margin:0 0 24px;}
+.field{text-align:left;margin-bottom:14px;}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;font-weight:600;}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);}
+.btn{border:none;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:transform .1s, opacity .15s;}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:linear-gradient(135deg,var(--primary),#115e59);color:#fff;width:100%;}
+.btn-gold{background:linear-gradient(135deg,var(--accent),#a5811a);color:#fff;}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-sm{padding:8px 12px;font-size:12px;border-radius:10px;}
+.error-msg{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px;}
+.demo-hint{margin-top:18px;font-size:11px;color:var(--muted);background:var(--bg);padding:10px;border-radius:10px;}
+
+/* ===== APP LAYOUT ===== */
+.app{display:none;min-height:100vh;}
+.app.active{display:flex;}
+.sidebar{width:250px;background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:40;transition:transform .25s;}
+.sidebar-header{padding:20px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
+.sidebar-header .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0;overflow:hidden;}
+.sidebar-header .logo img{width:100%;height:100%;object-fit:cover;}
+.sidebar-header b{font-size:14px;display:block;}
+.sidebar-header span{font-size:11px;color:var(--muted);}
+.nav-group{padding:10px 10px 0;}
+.nav-group-title{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:14px 12px 6px;font-weight:700;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13.5px;color:var(--text);cursor:pointer;margin-bottom:2px;font-weight:500;}
+.nav-item i{width:18px;text-align:center;color:var(--muted);}
+.nav-item:hover{background:var(--bg);}
+.nav-item.active{background:linear-gradient(135deg,var(--primary),#115e59);color:#fff;}
+.nav-item.active i{color:#fff;}
+
+.main{margin-left:250px;flex:1;min-height:100vh;padding-bottom:80px;}
+.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--border);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.topbar h2{font-size:17px;margin:0;}
+.topbar-actions{display:flex;align-items:center;gap:10px;}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);position:relative;}
+.icon-btn:hover{background:var(--bg);}
+.badge-dot{position:absolute;top:5px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--danger);}
+.menu-toggle{display:none;}
+.content{padding:20px 22px;}
+
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a5811a);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;cursor:pointer;}
+
+/* ===== CARDS / GRID ===== */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border);}
+.stat-card .top{display:flex;justify-content:space-between;align-items:flex-start;}
+.stat-card .icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;}
+.stat-card .val{font-size:24px;font-weight:800;margin-top:10px;}
+.stat-card .lbl{font-size:12.5px;color:var(--muted);margin-top:2px;}
+
+.card{background:var(--surface);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:16px;}
+.card-title{font-size:15px;font-weight:700;margin:0 0 14px;display:flex;justify-content:space-between;align-items:center;}
+.section-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+@media(max-width:900px){.section-grid{grid-template-columns:1fr;}}
+
+.quick-actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;}
+.quick-btn{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;font-weight:600;cursor:pointer;flex:1;min-width:90px;box-shadow:var(--shadow);}
+.quick-btn i{font-size:18px;color:var(--primary);}
+.quick-btn:hover{transform:translateY(-2px);transition:.15s;}
+
+/* ===== TABLE ===== */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;}
+td{padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tr:hover td{background:var(--bg);}
+.chip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.chip-green{background:#dcfce7;color:#166534;}
+.chip-yellow{background:#fef3c7;color:#92400e;}
+.chip-red{background:#fee2e2;color:#991b1b;}
+.chip-blue{background:#dbeafe;color:#1e40af;}
+.chip-gray{background:#e5e7eb;color:#374151;}
+[data-theme="dark"] .chip-green{background:#052e1b;color:#4ade80;}
+[data-theme="dark"] .chip-yellow{background:#3a2a05;color:#fbbf24;}
+[data-theme="dark"] .chip-red{background:#3a0d15;color:#fb7185;}
+[data-theme="dark"] .chip-blue{background:#0b2a4a;color:#7dd3fc;}
+[data-theme="dark"] .chip-gray{background:#1e293b;color:#cbd5e1;}
+
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.search-box{position:relative;flex:1;min-width:200px;max-width:320px;}
+.search-box input{width:100%;padding:10px 12px 10px 36px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;}
+.search-box i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;}
+
+/* ===== MODAL ===== */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--surface);border-radius:20px;max-width:560px;width:100%;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.modal-header h3{margin:0;font-size:17px;}
+.modal-close{cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid .full{grid-column:1/-1;}
+@media(max-width:520px){.form-grid{grid-template-columns:1fr;}}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+/* ===== BOTTOM NAV (mobile) ===== */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:50;padding:6px 4px;justify-content:space-around;}
+.bottom-nav .bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9.5px;color:var(--muted);padding:6px 4px;cursor:pointer;font-weight:600;}
+.bottom-nav .bn-item.active{color:var(--primary);}
+.bottom-nav .bn-item i{font-size:17px;}
+
+/* Toast */
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:12px;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px;min-width:220px;animation:slideIn .2s;}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.toast i{font-size:16px;}
+.toast.success i{color:var(--success);}
+.toast.error i{color:var(--danger);}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-state i{font-size:32px;margin-bottom:10px;display:block;}
+
+.loading-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.timeline{border-left:2px solid var(--border);margin-left:8px;padding-left:20px;}
+.timeline-item{position:relative;padding-bottom:20px;}
+.timeline-item::before{content:'';position:absolute;left:-26px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--primary);border:3px solid var(--surface);}
+.timeline-item .t-date{font-size:11px;color:var(--muted);}
+.timeline-item .t-label{font-size:13.5px;font-weight:600;margin-top:2px;}
+
+.color-swatch{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);cursor:pointer;padding:0;}
+
+@media(max-width:860px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;padding-bottom:90px;}
+  .menu-toggle{display:flex;}
+  .bottom-nav{display:flex;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ============ LOGIN ============ -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo"><i class="fa-solid fa-spa"></i></div>
+    <h1 id="loginTitle">ຄລີນິກຄວາມງາມ</h1>
+    <p>Clinic & Aesthetic Management System</p>
+    <div class="field">
+      <label>ຊື່ຜູ້ໃຊ້ / Username</label>
+      <input id="loginUser" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>ລະຫັດຜ່ານ / Password</label>
+      <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="loginBtn" onclick="doLogin()">ເຂົ້າສູ່ລະບົບ</button>
+    <div class="error-msg" id="loginError"></div>
+    <div class="demo-hint">Demo: <b>admin</b> / <b>admin123</b> (ປ່ຽນລະຫັດຫລັງເຂົ້າລະບົບ)</div>
+    <div style="margin-top:14px;"><a onclick="goStorefront()" style="font-size:12.5px;color:var(--primary);font-weight:700;cursor:pointer;"><i class="fa-solid fa-arrow-left"></i> ກັບໄປໜ້າຮ້ານ</a></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo" id="sbLogo"><i class="fa-solid fa-spa"></i></div>
+      <div>
+        <b id="sbClinicName">Clinic System</b>
+        <span id="sbUserRole">-</span>
+      </div>
+    </div>
+    <nav id="navContainer"></nav>
+    <div style="height:20px;"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="icon-btn menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+        <h2 id="pageTitle">Dashboard</h2>
+      </div>
+      <div class="topbar-actions">
+        <select id="langSwitch" onchange="setLang(this.value)" class="btn-outline btn" style="padding:8px 10px;">
+          <option value="lo">🇱🇦 ລາວ</option>
+          <option value="th">🇹🇭 ไทย</option>
+          <option value="en">🇬🇧 EN</option>
+        </select>
+        <button class="icon-btn" onclick="goStorefront()" title="ໜ້າຮ້ານ"><i class="fa-solid fa-store"></i></button>
+        <button class="icon-btn" onclick="toggleDark()"><i class="fa-solid fa-circle-half-stroke" id="darkIcon"></i></button>
+        <button class="icon-btn" onclick="openSettings()"><i class="fa-solid fa-gear"></i></button>
+        <button class="icon-btn" onclick="openNotifPanel()"><i class="fa-solid fa-bell"></i><span class="badge-dot" id="notifDot" style="display:none;"></span></button>
+        <div class="avatar" id="userAvatar" onclick="doLogout()" title="ອອກຈາກລະບົບ">A</div>
+      </div>
+    </div>
+    <div class="content" id="pageContent"></div>
+  </div>
+</div>
+
+<!-- Bottom nav mobile -->
+<div class="bottom-nav" id="bottomNav"></div>
+
+<!-- Generic Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox">
+    <div class="modal-header">
+      <h3 id="modalTitle">Form</h3>
+      <div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ================= STATE ================= */
+var STATE = {
+  user: null,
+  settings: {},
+  lang: 'lo',
+  theme: 'light',
+  currentPage: 'dashboard',
+  cache: {}
+};
+
+var I18N = {
+  lo:{dashboard:'ໜ້າຫຼັກ',patients:'ຄົນເຈັບ',appointments:'ນັດໝາຍ',queue:'ຄິວ',triage:'ວັດແທກສັນຍານຊີບ',consultations:'ກວດພະຍາດ (EMR)',prescriptions:'ໃບສັ່ງຢາ',pharmacy:'ຄັງຢາ',lab:'ຫ້ອງແລັບ',services:'ບໍລິການ',treatments:'ການປິ່ນປົວ/ຄວາມງາມ',photos:'ຮູບກ່ອນ-ຫຼັງ',packages:'ແພັກເກັດ/ສະມາຊິກ',inventory:'ສາງສິນຄ້າ',suppliers:'ຜູ້ສະໜອງ',invoices:'ໃບບິນ/POS',consents:'ໃບຍິນຍອມ',followups:'ຕິດຕາມຜົນ',crm:'CRM',reports:'ລາຍງານ',branches:'ສາຂາ',doctors:'ທ່ານໝໍ',users:'ຜູ້ໃຊ້ລະບົບ',audit:'Audit Log',settings:'ຕັ້ງຄ່າລະບົບ',logout:'ອອກຈາກລະບົບ',save:'ບັນທຶກ',cancel:'ຍົກເລີກ',add:'ເພີ່ມ',edit:'ແກ້ໄຂ',delete:'ລຶບ',search:'ຄົ້ນຫາ...'},
+  th:{dashboard:'แดชบอร์ด',patients:'ผู้ป่วย',appointments:'นัดหมาย',queue:'คิว',triage:'สัญญาณชีพ',consultations:'ตรวจรักษา (EMR)',prescriptions:'ใบสั่งยา',pharmacy:'คลังยา',lab:'ห้องปฏิบัติการ',services:'บริการ',treatments:'การรักษา/ความงาม',photos:'ภาพก่อน-หลัง',packages:'แพ็กเกจ/สมาชิก',inventory:'คลังสินค้า',suppliers:'ผู้จำหน่าย',invoices:'ใบเรียกเก็บเงิน/POS',consents:'ใบยินยอม',followups:'ติดตามผล',crm:'CRM',reports:'รายงาน',branches:'สาขา',doctors:'แพทย์',users:'ผู้ใช้ระบบ',audit:'Audit Log',settings:'ตั้งค่าระบบ',logout:'ออกจากระบบ',save:'บันทึก',cancel:'ยกเลิก',add:'เพิ่ม',edit:'แก้ไข',delete:'ลบ',search:'ค้นหา...'},
+  en:{dashboard:'Dashboard',patients:'Patients',appointments:'Appointments',queue:'Queue',triage:'Triage/Vitals',consultations:'Consultation (EMR)',prescriptions:'Prescriptions',pharmacy:'Pharmacy',lab:'Laboratory',services:'Services',treatments:'Treatments',photos:'Before/After',packages:'Packages/Membership',inventory:'Inventory',suppliers:'Suppliers',invoices:'Invoices/POS',consents:'Consents',followups:'Follow-ups',crm:'CRM',reports:'Reports',branches:'Branches',doctors:'Doctors',users:'Users',audit:'Audit Log',settings:'Settings',logout:'Logout',save:'Save',cancel:'Cancel',add:'Add',edit:'Edit',delete:'Delete',search:'Search...'}
+};
+function t(k){ return (I18N[STATE.lang] && I18N[STATE.lang][k]) || k; }
+
+var NAV = [
+  {group:'core', items:[
+    {id:'dashboard', icon:'fa-gauge-high', key:'dashboard'},
+    {id:'patients', icon:'fa-hospital-user', key:'patients'},
+    {id:'appointments', icon:'fa-calendar-check', key:'appointments'},
+    {id:'queue', icon:'fa-list-ol', key:'queue'},
+  ]},
+  {group:'clinical', items:[
+    {id:'triage', icon:'fa-heart-pulse', key:'triage'},
+    {id:'consultations', icon:'fa-user-doctor', key:'consultations'},
+    {id:'prescriptions', icon:'fa-prescription', key:'prescriptions'},
+    {id:'pharmacy', icon:'fa-pills', key:'pharmacy'},
+    {id:'lab', icon:'fa-flask', key:'lab'},
+  ]},
+  {group:'aesthetic', items:[
+    {id:'services', icon:'fa-spa', key:'services'},
+    {id:'treatments', icon:'fa-hand-sparkles', key:'treatments'},
+    {id:'photos', icon:'fa-camera-retro', key:'photos'},
+    {id:'packages', icon:'fa-gift', key:'packages'},
+    {id:'consents', icon:'fa-file-signature', key:'consents'},
+  ]},
+  {group:'operations', items:[
+    {id:'invoices', icon:'fa-cash-register', key:'invoices'},
+    {id:'inventory', icon:'fa-boxes-stacked', key:'inventory'},
+    {id:'suppliers', icon:'fa-truck-field', key:'suppliers'},
+    {id:'followups', icon:'fa-bell', key:'followups'},
+    {id:'crm', icon:'fa-address-book', key:'crm'},
+  ]},
+  {group:'management', items:[
+    {id:'reports', icon:'fa-chart-line', key:'reports'},
+    {id:'branches', icon:'fa-building', key:'branches'},
+    {id:'doctors', icon:'fa-user-nurse', key:'doctors'},
+    {id:'users', icon:'fa-users-gear', key:'users'},
+    {id:'audit', icon:'fa-shield-halved', key:'audit'},
+  ]}
+];
+var MOBILE_NAV = ['dashboard','patients','appointments','queue','invoices'];
+
+/* ================= INIT ================= */
+window.onload = function(){
+  var savedTheme = localStorage.getItem('clinic_theme');
+  var savedLang = localStorage.getItem('clinic_lang');
+  if (savedTheme) { STATE.theme = savedTheme; document.documentElement.setAttribute('data-theme', savedTheme); }
+  if (savedLang) { STATE.lang = savedLang; document.getElementById('langSwitch').value = savedLang; }
+  loadSettings();
+
+  // ຖ້າມີ session ຄ້າງໄວ້ (login ຄັ້ງກ່ອນ) ໃຫ້ເຂົ້າລະບົບອັດຕະໂນມັດ
+  try {
+    var saved = JSON.parse(localStorage.getItem('clinic_user') || 'null');
+    if (saved && saved.Id) { STATE.user = saved; enterApp(); }
+  } catch(e) {}
+};
+
+function loadSettings(){
+  google.script.run.withSuccessHandler(function(s){
+    STATE.settings = s;
+    applyTheme();
+  }).withFailureHandler(function(e){ toast('ບໍ່ສາມາດໂຫລດການຕັ້ງຄ່າ: '+e.message,'error'); }).apiGetSettings();
+}
+
+function applyTheme(){
+  var s = STATE.settings;
+  if (s.primary_color) document.documentElement.style.setProperty('--primary', s.primary_color);
+  if (s.accent_color) document.documentElement.style.setProperty('--accent', s.accent_color);
+  document.getElementById('loginTitle').textContent = s.clinic_name_la || s.clinic_name || 'Clinic System';
+  document.getElementById('sbClinicName').textContent = s.clinic_name_la || s.clinic_name || 'Clinic System';
+  if (s.logo_url) {
+    document.getElementById('sbLogo').innerHTML = '<img src="'+s.logo_url+'">';
+  }
+}
+
+/* ================= AUTH ================= */
+function doLogin(){
+  var u = document.getElementById('loginUser').value.trim();
+  var p = document.getElementById('loginPass').value;
+  var btn = document.getElementById('loginBtn');
+  document.getElementById('loginError').textContent = '';
+  if (!u || !p) { document.getElementById('loginError').textContent = 'ກະລຸນາປ້ອນຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານ'; return; }
+  var originalHtml = btn.textContent;
+  btn.innerHTML = '<span class="loading-spin"></span>';
+  google.script.run.withSuccessHandler(function(res){
+    btn.textContent = originalHtml;
+    if (res.success) {
+      STATE.user = res.user;
+      localStorage.setItem('clinic_user', JSON.stringify(res.user));
+      enterApp();
+    } else {
+      document.getElementById('loginError').textContent = res.message;
+    }
+  }).withFailureHandler(function(err){
+    btn.textContent = originalHtml;
+    document.getElementById('loginError').textContent = 'ຜິດພາດ: ' + err.message;
+  }).apiLogin(u, p);
+}
+function doLogout(){
+  if (!confirm('ອອກຈາກລະບົບ?')) return;
+  localStorage.removeItem('clinic_user');
+  location.reload();
+}
+
+/* ===== GO TO STOREFRONT (view=admin ຖືກຕັດອອກ) ===== */
+function goStorefront(){
+  try{
+    var url = new URL(window.location.href);
+    url.searchParams.delete('view');
+    window.top.location.href = url.toString();
+  }catch(e){
+    window.top.location.href = window.location.href.split('?')[0];
+  }
+}
+
+function enterApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  document.getElementById('userAvatar').textContent = (STATE.user.FullName||'U').substring(0,1).toUpperCase();
+  document.getElementById('sbUserRole').textContent = STATE.user.Role + ' • ' + STATE.user.FullName;
+  buildNav();
+  loadSettings();
+  goPage('dashboard');
+}
+
+/* ================= NAV ================= */
+function buildNav(){
+  var html = '';
+  NAV.forEach(function(g){
+    html += '<div class="nav-group"><div class="nav-group-title">'+g.group+'</div>';
+    g.items.forEach(function(it){
+      html += '<div class="nav-item" id="nav_'+it.id+'" onclick="goPage(\''+it.id+'\')"><i class="fa-solid '+it.icon+'"></i><span>'+t(it.key)+'</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '<div class="nav-group">'+
+    '<div class="nav-item" onclick="goStorefront()"><i class="fa-solid fa-store"></i><span>ໜ້າຮ້ານ</span></div>'+
+    '<div class="nav-item" onclick="doLogout()"><i class="fa-solid fa-right-from-bracket"></i><span>'+t('logout')+'</span></div></div>';
+  document.getElementById('navContainer').innerHTML = html;
+
+  var bn = '';
+  MOBILE_NAV.forEach(function(id){
+    var it = null;
+    NAV.forEach(function(g){ g.items.forEach(function(i){ if(i.id===id) it=i; }); });
+    if (it) bn += '<div class="bn-item" id="bn_'+id+'" onclick="goPage(\''+id+'\')"><i class="fa-solid '+it.icon+'"></i><span>'+t(it.key)+'</span></div>';
+  });
+  document.getElementById('bottomNav').innerHTML = bn;
+}
+
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+
+function goPage(id){
+  STATE.currentPage = id;
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  var nav = document.getElementById('nav_'+id); if (nav) nav.classList.add('active');
+  document.querySelectorAll('.bn-item').forEach(function(n){ n.classList.remove('active'); });
+  var bn = document.getElementById('bn_'+id); if (bn) bn.classList.add('active');
+  document.getElementById('sidebar').classList.remove('open');
+  var titleMap = {}; NAV.forEach(function(g){g.items.forEach(function(i){titleMap[i.id]=i.key;});});
+  document.getElementById('pageTitle').textContent = t(titleMap[id] || id);
+  renderPage(id);
+}
+
+/* ================= TOAST ================= */
+function toast(msg, type){
+  type = type || 'success';
+  var el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = '<i class="fa-solid '+(type==='success'?'fa-circle-check':'fa-circle-exclamation')+'"></i><span>'+msg+'</span>';
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(function(){ el.remove(); }, 3500);
+}
+
+/* ================= LANG / THEME ================= */
+function setLang(l){ STATE.lang = l; localStorage.setItem('clinic_lang', l); buildNav(); renderPage(STATE.currentPage); }
+function toggleDark(){
+  STATE.theme = STATE.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', STATE.theme);
+  localStorage.setItem('clinic_theme', STATE.theme);
+}
+
+/* ================= MODAL ================= */
+function openModal(title, bodyHtml){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+document.addEventListener('click', function(e){
+  if (e.target && e.target.id === 'modalOverlay') closeModal();
+});
+
+/* ================= DATA HELPERS ================= */
+function fetchList(entity, cb, force){
+  if (STATE.cache[entity] && !force) { cb(STATE.cache[entity]); return; }
+  google.script.run.withSuccessHandler(function(list){
+    STATE.cache[entity] = list;
+    cb(list);
+  }).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message,'error'); }).apiList(entity);
+}
+function invalidate(entity){ delete STATE.cache[entity]; }
+
+function statusChip(status){
+  var map = {Active:'green', Paid:'green', Completed:'green', Verified:'green', Confirmed:'blue', Waiting:'yellow', Pending:'yellow', Partial:'yellow', Called:'blue', Unpaid:'red', Cancelled:'red', Deleted:'red', Expired:'red', Inactive:'gray'};
+  var c = map[status] || 'gray';
+  return '<span class="chip chip-'+c+'">'+(status||'-')+'</span>';
+}
+function fmtDate(d){ if(!d) return '-'; try{ return new Date(d).toLocaleString('lo-LA',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return d;} }
+function fmtMoney(n){ n = Number(n||0); return n.toLocaleString() + ' ' + (STATE.settings.currency||'LAK'); }
+function patientName(pid, patients){ var p = (patients||STATE.cache.Patients||[]).find(function(x){return x.Id===pid;}); return p ? (p.FullName+' ('+p.HN+')') : pid; }
+function esc(s){ return (s===undefined||s===null) ? '' : String(s).replace(/"/g,'&quot;'); }
+
+/* ================= GENERIC CRUD TABLE RENDERER ================= */
+function renderCrudPage(entity, columns, formFields, opts){
+  opts = opts || {};
+  var container = document.getElementById('pageContent');
+  container.innerHTML =
+    '<div class="toolbar">'+
+      '<div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="crudSearch" placeholder="'+t('search')+'" oninput="filterCrudTable()"></div>'+
+      '<button class="btn btn-primary" onclick="openCrudForm(\''+entity+'\')"><i class="fa-solid fa-plus"></i> '+t('add')+'</button>'+
+    '</div>'+
+    '<div class="card"><div class="table-wrap"><table id="crudTable"><thead><tr>'+
+      columns.map(function(c){return '<th>'+c.label+'</th>';}).join('')+
+      '<th></th></tr></thead><tbody id="crudTbody"><tr><td colspan="'+(columns.length+1)+'" class="empty-state">Loading...</td></tr></tbody></table></div></div>';
+
+  window.currentCrudEntity = entity;
+  window.currentCrudColumns = columns;
+  window.currentCrudFields = formFields;
+
+  fetchList(entity, function(list){
+    window.currentCrudData = list.filter(function(x){return x.Status!=='Deleted';}).reverse();
+    renderCrudRows(window.currentCrudData);
+  }, true);
+}
+
+function renderCrudRows(list){
+  var columns = window.currentCrudColumns;
+  var tbody = document.getElementById('crudTbody');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="'+(columns.length+1)+'" class="empty-state"><i class="fa-solid fa-inbox"></i>ບໍ່ມີຂໍ້ມູນ</td></tr>'; return; }
+  tbody.innerHTML = list.map(function(row){
+    var cells = columns.map(function(c){
+      var v = row[c.key];
+      if (c.type === 'status') v = statusChip(v);
+      else if (c.type === 'money') v = fmtMoney(v);
+      else if (c.type === 'date') v = fmtDate(v);
+      else if (c.render) v = c.render(row);
+      else v = v || '-';
+      return '<td>'+v+'</td>';
+    }).join('');
+    return '<tr>'+cells+
+      '<td><button class="btn btn-outline btn-sm" onclick=\'editCrudRow("'+row.Id+'")\'><i class="fa-solid fa-pen"></i></button> '+
+      '<button class="btn btn-danger btn-sm" onclick="deleteCrudRow(\''+row.Id+'\')"><i class="fa-solid fa-trash"></i></button></td></tr>';
+  }).join('');
+}
+
+function filterCrudTable(){
+  var q = document.getElementById('crudSearch').value.toLowerCase();
+  var filtered = window.currentCrudData.filter(function(row){
+    return JSON.stringify(row).toLowerCase().indexOf(q) > -1;
+  });
+  renderCrudRows(filtered);
+}
+
+function buildFormHtml(fields, data){
+  data = data || {};
+  return '<div class="form-grid">' + fields.map(function(f){
+    var val = data[f.key] !== undefined ? data[f.key] : (f.default||'');
+    var full = f.full ? ' full' : '';
+    if (f.type === 'select') {
+      var opts = (f.options||[]).map(function(o){
+        var ov = typeof o === 'object' ? o.value : o;
+        var ol = typeof o === 'object' ? o.label : o;
+        return '<option value="'+ov+'" '+(String(val)===String(ov)?'selected':'')+'>'+ol+'</option>';
+      }).join('');
+      return '<div class="field'+full+'"><label>'+f.label+'</label><select id="f_'+f.key+'">'+opts+'</select></div>';
+    }
+    if (f.type === 'textarea') {
+      return '<div class="field'+full+'"><label>'+f.label+'</label><textarea id="f_'+f.key+'" rows="3">'+(val||'')+'</textarea></div>';
+    }
+    if (f.type === 'checkbox') {
+      var checked = (String(val).toLowerCase()==='true') ? 'checked' : '';
+      return '<div class="field'+full+'"><label>'+f.label+'</label><select id="f_'+f.key+'"><option value="false" '+(checked?'':'selected')+'>ບໍ່</option><option value="true" '+(checked?'selected':'')+'>ແມ່ນ</option></select></div>';
+    }
+    return '<div class="field'+full+'"><label>'+f.label+'</label><input id="f_'+f.key+'" type="'+(f.type||'text')+'" value="'+esc(val)+'"></div>';
+  }).join('') + '</div>';
+}
+
+function openCrudForm(entity, existing){
+  var fields = window.currentCrudFields;
+  var body = buildFormHtml(fields, existing) +
+    '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button>'+
+    '<button class="btn btn-primary" onclick="submitCrudForm(\''+entity+'\',\''+(existing?existing.Id:'')+'\')">'+t('save')+'</button></div>';
+  openModal((existing?t('edit'):t('add')), body);
+}
+
+function editCrudRow(id){
+  var row = window.currentCrudData.find(function(x){return x.Id===id;});
+  openCrudForm(window.currentCrudEntity, row);
+}
+
+function collectFormData(fields){
+  var obj = {};
+  fields.forEach(function(f){ obj[f.key] = document.getElementById('f_'+f.key).value; });
+  return obj;
+}
+
+function submitCrudForm(entity, id){
+  var fields = window.currentCrudFields;
+  var data = collectFormData(fields);
+  var handler = function(){
+    closeModal(); invalidate(entity); toast('ບັນທຶກສຳເລັດ'); renderPage(STATE.currentPage);
+  };
+  var fail = function(e){ toast('ຜິດພາດ: '+e.message,'error'); };
+  if (id) {
+    google.script.run.withSuccessHandler(handler).withFailureHandler(fail).apiUpdate(entity, id, data, STATE.user.Id);
+  } else {
+    google.script.run.withSuccessHandler(handler).withFailureHandler(fail).apiCreate(entity, data, STATE.user.Id);
+  }
+}
+
+function deleteCrudRow(id){
+  if (!confirm('ຢືນຢັນການລຶບ?')) return;
+  google.script.run.withSuccessHandler(function(){
+    invalidate(window.currentCrudEntity); toast('ລຶບແລ້ວ'); renderPage(STATE.currentPage);
+  }).withFailureHandler(function(e){ toast(e.message,'error'); }).apiDelete(window.currentCrudEntity, id, STATE.user.Id);
+}
+
+/* ================= PAGE ROUTER ================= */
+function renderPage(id){
+  var fns = {
+    dashboard: renderDashboard,
+    patients: renderPatients,
+    appointments: renderAppointments,
+    queue: renderQueue,
+    triage: renderTriage,
+    consultations: renderConsultations,
+    prescriptions: renderPrescriptions,
+    pharmacy: renderPharmacy,
+    lab: renderLab,
+    services: renderServices,
+    treatments: renderTreatments,
+    photos: renderPhotos,
+    packages: renderPackages,
+    consents: renderConsents,
+    invoices: renderInvoices,
+    inventory: renderInventory,
+    suppliers: renderSuppliers,
+    followups: renderFollowups,
+    crm: renderCRM,
+    reports: renderReports,
+    branches: renderBranches,
+    doctors: renderDoctors,
+    users: renderUsers,
+    audit: renderAudit
+  };
+  (fns[id] || renderDashboard)();
+}
+
+/* ================= DASHBOARD ================= */
+function renderDashboard(){
+  var c = document.getElementById('pageContent');
+  c.innerHTML = '<div class="quick-actions" id="qa"></div><div class="stat-grid" id="statGrid"><div class="empty-state">Loading...</div></div>'+
+    '<div class="section-grid"><div class="card"><div class="card-title">ລາຍຮັບ 7 ວັນຫຼ້າສຸດ (Revenue Trend)</div><div id="revChart"></div></div>'+
+    '<div class="card"><div class="card-title">ການແຈ້ງເຕືອນ / Alerts</div><div id="alertList"></div></div></div>';
+
+  var qas = [
+    {icon:'fa-user-plus', label:'ຄົນເຈັບໃໝ່', page:'patients'},
+    {icon:'fa-calendar-plus', label:'ນັດໝາຍ', page:'appointments'},
+    {icon:'fa-list-ol', label:'ຄິວ', page:'queue'},
+    {icon:'fa-cash-register', label:'ໃບບິນ', page:'invoices'},
+    {icon:'fa-pills', label:'ຄັງຢາ', page:'pharmacy'},
+    {icon:'fa-flask', label:'ແລັບ', page:'lab'},
+  ];
+  document.getElementById('qa').innerHTML = qas.map(function(q){
+    return '<div class="quick-btn" onclick="goPage(\''+q.page+'\')"><i class="fa-solid '+q.icon+'"></i>'+q.label+'</div>';
+  }).join('');
+
+  google.script.run.withSuccessHandler(function(s){
+    var cards = [
+      {icon:'fa-user-clock', color:'#0f766e', val:s.waitingPatients, lbl:'ຄົນເຈັບກຳລັງລໍຖ້າ'},
+      {icon:'fa-calendar-day', color:'#2563eb', val:s.todaysAppointments, lbl:'ນັດໝາຍມື້ນີ້'},
+      {icon:'fa-sack-dollar', color:'#16a34a', val:fmtMoney(s.todaysRevenue), lbl:'ລາຍຮັບມື້ນີ້'},
+      {icon:'fa-file-invoice-dollar', color:'#d97706', val:fmtMoney(s.outstandingBalance), lbl:'ຍອດຄ້າງຊຳລະ'},
+      {icon:'fa-user-plus', color:'#7c3aed', val:s.newPatients, lbl:'ຄົນເຈັບໃໝ່ມື້ນີ້'},
+      {icon:'fa-boxes-stacked', color:'#e11d48', val:s.lowStockCount, lbl:'ສິນຄ້າ/ຢາໃກ້ໝົດ'},
+      {icon:'fa-hourglass-half', color:'#ea580c', val:s.expiringCount, lbl:'ຢາໃກ້ຫມົດອາຍຸ'},
+      {icon:'fa-flask-vial', color:'#0891b2', val:s.pendingLab, lbl:'ລໍຖ້າຜົນແລັບ'},
+    ];
+    document.getElementById('statGrid').innerHTML = cards.map(function(cc){
+      return '<div class="stat-card"><div class="top"><div class="icon" style="background:'+cc.color+'"><i class="fa-solid '+cc.icon+'"></i></div></div><div class="val">'+cc.val+'</div><div class="lbl">'+cc.lbl+'</div></div>';
+    }).join('');
+
+    var alerts = [];
+    if (s.lowStockCount>0) alerts.push({icon:'fa-triangle-exclamation',color:'#e11d48',text:'ມີ '+s.lowStockCount+' ລາຍການສາງ/ຢາໃກ້ໝົດ'});
+    if (s.expiringCount>0) alerts.push({icon:'fa-hourglass-half',color:'#d97706',text:'ມີ '+s.expiringCount+' ລາຍການຢາໃກ້ຫມົດອາຍຸ (30ວັນ)'});
+    if (s.pendingLab>0) alerts.push({icon:'fa-flask',color:'#0891b2',text:'ມີ '+s.pendingLab+' ລາຍການແລັບລໍຖ້າຢືນຢັນ'});
+    if (s.pendingFollowUps>0) alerts.push({icon:'fa-bell',color:'#7c3aed',text:'ມີ '+s.pendingFollowUps+' ລາຍການຕິດຕາມຜົນທີ່ຄ້າງ'});
+    if (s.pendingBookings>0) alerts.push({icon:'fa-globe',color:'#0f766e',text:'ມີ '+s.pendingBookings+' ການຈອງອອນລາຍທີ່ຄ້າງຢືນຢັນ'});
+    document.getElementById('alertList').innerHTML = alerts.length ? alerts.map(function(a){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);"><i class="fa-solid '+a.icon+'" style="color:'+a.color+';width:20px;"></i><span style="font-size:13px;">'+a.text+'</span></div>';
+    }).join('') : '<div class="empty-state"><i class="fa-solid fa-circle-check"></i>ບໍ່ມີການແຈ້ງເຕືອນ</div>';
+  }).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message,'error'); }).apiDashboardStats();
+
+  google.script.run.withSuccessHandler(function(data){
+    var max = Math.max.apply(null, data.map(function(d){return d.revenue;}).concat([1]));
+    document.getElementById('revChart').innerHTML = data.length ? '<div style="display:flex;align-items:flex-end;gap:8px;height:140px;">' +
+      data.slice(-7).map(function(d){
+        var h = Math.max(6, (d.revenue/max)*130);
+        return '<div style="flex:1;text-align:center;"><div style="background:linear-gradient(180deg,var(--primary),var(--accent));height:'+h+'px;border-radius:6px 6px 0 0;" title="'+fmtMoney(d.revenue)+'"></div><div style="font-size:10px;color:var(--muted);margin-top:4px;">'+d.date.substring(5)+'</div></div>';
+      }).join('') + '</div>' : '<div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div>';
+  }).apiRevenueReport(
+    new Date(Date.now()-30*86400000).toISOString().substring(0,10),
+    new Date().toISOString().substring(0,10)
+  );
+}
+
+/* ================= PATIENTS (custom) ================= */
+function renderPatients(){
+  var c = document.getElementById('pageContent');
+  c.innerHTML = '<div class="toolbar"><div class="search-box"><i class="fa-solid fa-magnifying-glass"></i><input id="patSearch" placeholder="'+t('search')+'" oninput="filterPatients()"></div>'+
+    '<button class="btn btn-primary" onclick="openPatientForm()"><i class="fa-solid fa-user-plus"></i> '+t('add')+'</button></div>'+
+    '<div class="card"><div class="table-wrap"><table><thead><tr><th>HN</th><th>ຊື່</th><th>ເພດ</th><th>ວັນເກີດ</th><th>ໂທລະສັບ</th><th>ສະຖານະ</th><th></th></tr></thead><tbody id="patTbody"><tr><td colspan="7" class="empty-state">Loading...</td></tr></tbody></table></div></div>';
+
+  fetchList('Patients', function(list){
+    window.patData = list.filter(function(x){return x.Status!=='Deleted';}).reverse();
+    renderPatRows(window.patData);
+  }, true);
+}
+function renderPatRows(list){
+  var tb = document.getElementById('patTbody');
+  if (!list.length) { tb.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fa-solid fa-inbox"></i>ບໍ່ມີຂໍ້ມູນ</td></tr>'; return; }
+  tb.innerHTML = list.map(function(p){
+    return '<tr><td><b>'+p.HN+'</b></td><td><a onclick="viewPatientProfile(\''+p.Id+'\')" style="color:var(--primary);cursor:pointer;font-weight:600;">'+p.FullName+'</a></td><td>'+(p.Gender||'-')+'</td><td>'+(p.DOB||'-')+'</td><td>'+(p.Phone||'-')+'</td><td>'+statusChip(p.Status)+'</td>'+
+      '<td><button class="btn btn-outline btn-sm" onclick="openPatientForm(\''+p.Id+'\')"><i class="fa-solid fa-pen"></i></button></td></tr>';
+  }).join('');
+}
+function filterPatients(){
+  var q = document.getElementById('patSearch').value.toLowerCase();
+  renderPatRows(window.patData.filter(function(p){ return JSON.stringify(p).toLowerCase().indexOf(q)>-1; }));
+}
+var PATIENT_FIELDS = [
+  {key:'FullName',label:'ຊື່ ແລະ ນາມສະກຸນ',full:true},
+  {key:'Gender',label:'ເພດ',type:'select',options:['ຊາຍ','ຍິງ','ອື່ນໆ']},
+  {key:'DOB',label:'ວັນເດືອນປີເກີດ',type:'date'},
+  {key:'Phone',label:'ໂທລະສັບ'},
+  {key:'Email',label:'ອີເມວ'},
+  {key:'Address',label:'ທີ່ຢູ່',full:true},
+  {key:'Allergies',label:'ການແພ້ຢາ/ອາຫານ',full:true,type:'textarea'},
+  {key:'ChronicDisease',label:'ພະຍາດປະຈຳຕົວ',full:true,type:'textarea'},
+  {key:'SkinType',label:'ປະເພດຜິວ (ຄວາມງາມ)',type:'select',options:['Normal','Oily','Dry','Combination','Sensitive']},
+  {key:'ReferralSource',label:'ຮູ້ຈັກຈາກ'},
+  {key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
+];
+function openPatientForm(id){
+  var existing = id ? window.patData.find(function(x){return x.Id===id;}) : null;
+  var body = buildFormHtml(PATIENT_FIELDS, existing) +
+    '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button>'+
+    '<button class="btn btn-primary" onclick="savePatient(\''+(id||'')+'\')">'+t('save')+'</button></div>';
+  openModal(id?'ແກ້ໄຂຂໍ້ມູນຄົນເຈັບ':'ລົງທະບຽນຄົນເຈັບໃໝ່', body);
+}
+function savePatient(id){
+  var data = collectFormData(PATIENT_FIELDS);
+  var ok = function(){ closeModal(); invalidate('Patients'); toast('ບັນທຶກສຳເລັດ'); renderPatients(); };
+  var fail = function(e){ toast(e.message,'error'); };
+  if (id) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).apiUpdate('Patients', id, data, STATE.user.Id);
+  else google.script.run.withSuccessHandler(ok).withFailureHandler(fail).apiCreatePatient(data, STATE.user.Id);
+}
+function viewPatientProfile(id){
+  var p = window.patData.find(function(x){return x.Id===id;});
+  var body = '<div style="display:flex;gap:14px;align-items:center;margin-bottom:16px;">'+
+    '<div class="avatar" style="width:56px;height:56px;font-size:20px;">'+p.FullName.substring(0,1)+'</div>'+
+    '<div><b style="font-size:16px;">'+p.FullName+'</b><div style="color:var(--muted);font-size:12px;">'+p.HN+' • '+(p.Phone||'-')+'</div></div></div>'+
+    '<div id="ptTimeline"><div class="empty-state">Loading timeline...</div></div>';
+  openModal('ປະຫວັດຄົນເຈັບ (Timeline)', body);
+  google.script.run.withSuccessHandler(function(items){
+    var el = document.getElementById('ptTimeline');
+    if (!el) return;
+    if (!items.length) { el.innerHTML = '<div class="empty-state">ຍັງບໍ່ມີປະຫວັດ</div>'; return; }
+    el.innerHTML = '<div class="timeline">'+items.map(function(it){
+      return '<div class="timeline-item"><div class="t-date">'+fmtDate(it.date)+'</div><div class="t-label">'+it.label+'</div></div>';
+    }).join('')+'</div>';
+  }).apiPatientTimeline(id);
+}
+
+/* ================= APPOINTMENTS ================= */
+function renderAppointments(){
+  fetchList('Patients', function(patients){
+    fetchList('Doctors', function(doctors){
+      fetchList('Services', function(services){
+        var fields = [
+          {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+          {key:'DoctorId', label:'ທ່ານໝໍ', type:'select', options:doctors.map(function(d){return {value:d.Id,label:d.Name};})},
+          {key:'ServiceId', label:'ບໍລິການ', type:'select', options:services.map(function(s){return {value:s.Id,label:s.Name};})},
+          {key:'Date', label:'ວັນທີ', type:'date'},
+          {key:'Time', label:'ເວລາ', type:'time'},
+          {key:'Duration', label:'ໄລຍະເວລາ (ນາທີ)', type:'number', default:30},
+          {key:'Status', label:'ສະຖານະ', type:'select', options:['Pending','Confirmed','Arrived','Waiting','In consultation','Completed','Cancelled','No-show'], default:'Pending'},
+          {key:'Notes', label:'ໝາຍເຫດ', type:'textarea', full:true}
+        ];
+        var columns = [
+          {key:'Date', label:'ວັນທີ'}, {key:'Time', label:'ເວລາ'},
+          {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+          {key:'DoctorId', label:'ທ່ານໝໍ', render:function(r){var d=doctors.find(function(x){return x.Id===r.DoctorId;});return d?d.Name:'-';}},
+          {key:'Source', label:'ແຫຼ່ງທີ່ມາ'},
+          {key:'Status', label:'ສະຖານະ', type:'status'}
+        ];
+        renderCrudPage('Appointments', columns, fields);
+      });
+    });
+  });
+}
+
+/* ================= QUEUE ================= */
+function renderQueue(){
+  var c = document.getElementById('pageContent');
+  c.innerHTML = '<div class="toolbar"><div></div><button class="btn btn-gold" onclick="openTakeQueueForm()"><i class="fa-solid fa-ticket"></i> ອອກບັດຄິວ</button></div><div class="card"><div class="table-wrap"><table><thead><tr><th>ຄິວ</th><th>ຄົນເຈັບ</th><th>ປະເພດ</th><th>ສະຖານະ</th><th></th></tr></thead><tbody id="qTbody"></tbody></table></div></div>';
+  fetchList('Patients', function(patients){
+    fetchList('Queue', function(list){
+      window.qData = list.filter(function(x){return x.Status!=='Deleted';}).reverse();
+      var tb = document.getElementById('qTbody');
+      tb.innerHTML = window.qData.length ? window.qData.map(function(q){
+        var actions = '';
+        if (q.Status==='Waiting') actions = '<button class="btn btn-primary btn-sm" onclick="callQueue(\''+q.Id+'\')">ເອີ້ນຄິວ</button>';
+        else if (q.Status==='Called') actions = '<button class="btn btn-outline btn-sm" onclick="completeQueue(\''+q.Id+'\')">ສຳເລັດ</button>';
+        return '<tr><td><b style="font-size:16px;color:var(--primary);">'+q.QueueNo+'</b></td><td>'+patientName(q.PatientId,patients)+'</td><td>'+q.Type+'</td><td>'+statusChip(q.Status)+'</td>'+
+          '<td>'+actions+'</td></tr>';
+      }).join('') : '<tr><td colspan="5" class="empty-state">ບໍ່ມີຄິວມື້ນີ້</td></tr>';
+    }, true);
+  });
+}
+function openTakeQueueForm(){
+  fetchList('Patients', function(patients){
+    var body = '<div class="field"><label>ຄົນເຈັບ</label><select id="qPatient">'+patients.map(function(p){return '<option value="'+p.Id+'">'+p.FullName+' ('+p.HN+')</option>';}).join('')+'</select></div>'+
+      '<div class="field"><label>ປະເພດຄິວ</label><select id="qType"><option>General</option><option>Doctor</option><option>Pharmacy</option><option>Laboratory</option><option>Aesthetic</option><option>Cashier</option></select></div>'+
+      '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="submitTakeQueue()">ອອກບັດ</button></div>';
+    openModal('ອອກບັດຄິວ', body);
+  });
+}
+function submitTakeQueue(){
+  var pid = document.getElementById('qPatient').value;
+  var type = document.getElementById('qType').value;
+  google.script.run.withSuccessHandler(function(r){
+    closeModal(); invalidate('Queue'); toast('ອອກບັດຄິວ: '+r.QueueNo); renderQueue();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiTakeQueue(pid, type, STATE.user.Branch);
+}
+function callQueue(id){
+  google.script.run.withSuccessHandler(function(){ invalidate('Queue'); toast('ເອີ້ນຄິວແລ້ວ'); renderQueue(); }).withFailureHandler(function(e){toast(e.message,'error');}).apiCallNextQueue(id, STATE.user.Id);
+}
+function completeQueue(id){
+  google.script.run.withSuccessHandler(function(){ invalidate('Queue'); toast('ຄິວສຳເລັດແລ້ວ'); renderQueue(); }).withFailureHandler(function(e){toast(e.message,'error');}).apiCompleteQueue(id, STATE.user.Id);
+}
+
+/* ================= TRIAGE ================= */
+function renderTriage(){
+  fetchList('Patients', function(patients){
+    var fields = [
+      {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+      {key:'Weight', label:'ນ້ຳໜັກ (kg)', type:'number'},
+      {key:'Height', label:'ສ່ວນສູງ (cm)', type:'number'},
+      {key:'BP', label:'ຄວາມດັນເລືອດ'},
+      {key:'HeartRate', label:'ອັດຕາການເຕັ້ນຫົວໃຈ'},
+      {key:'Temp', label:'ອຸນຫະພູມ (°C)'},
+      {key:'SpO2', label:'SpO2 (%)'},
+      {key:'ChiefComplaint', label:'ອາການສຳຄັນ', full:true},
+      {key:'Notes', label:'ໝາຍເຫດ', type:'textarea', full:true}
+    ];
+    var columns = [
+      {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+      {key:'BP', label:'BP'}, {key:'HeartRate', label:'HR'}, {key:'Temp', label:'Temp'},
+      {key:'CreatedAt', label:'ວັນທີ', type:'date'}
+    ];
+    renderCrudPage('Triage', columns, fields);
+  });
+}
+
+/* ================= CONSULTATIONS (EMR) ================= */
+function renderConsultations(){
+  fetchList('Patients', function(patients){
+    fetchList('Doctors', function(doctors){
+      var fields = [
+        {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+        {key:'DoctorId', label:'ທ່ານໝໍ', type:'select', options:doctors.map(function(d){return {value:d.Id,label:d.Name};})},
+        {key:'ChiefComplaint', label:'ອາການສຳຄັນ', full:true},
+        {key:'HPI', label:'ປະຫວັດການເຈັບປ່ວຍ', type:'textarea', full:true},
+        {key:'PhysicalExam', label:'ກວດຮ່າງກາຍ', type:'textarea', full:true},
+        {key:'Assessment', label:'ການປະເມີນ', type:'textarea', full:true},
+        {key:'Diagnosis', label:'ການວິນິດໄສ', full:true},
+        {key:'TreatmentPlan', label:'ແຜນການປິ່ນປົວ', type:'textarea', full:true},
+        {key:'FollowUp', label:'ນັດຕິດຕາມ', type:'date'},
+        {key:'Notes', label:'ໝາຍເຫດທ່ານໝໍ', type:'textarea', full:true}
+      ];
+      var columns = [
+        {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+        {key:'Diagnosis', label:'ການວິນິດໄສ'},
+        {key:'CreatedAt', label:'ວັນທີ', type:'date'}
+      ];
+      renderCrudPage('Consultations', columns, fields);
+    });
+  });
+}
+
+/* ================= PRESCRIPTIONS ================= */
+function renderPrescriptions(){
+  fetchList('Patients', function(patients){
+    fetchList('Doctors', function(doctors){
+      var fields = [
+        {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+        {key:'DoctorId', label:'ທ່ານໝໍ', type:'select', options:doctors.map(function(d){return {value:d.Id,label:d.Name};})},
+        {key:'Medication', label:'ຢາ'},
+        {key:'Strength', label:'ຄວາມແຮງ (mg)'},
+        {key:'Dosage', label:'ຂະໜາດ'},
+        {key:'Frequency', label:'ຄວາມຖີ່'},
+        {key:'Duration', label:'ໄລຍະເວລາ'},
+        {key:'Quantity', label:'ຈຳນວນ', type:'number'},
+        {key:'ScheduleTimes', label:'ເວລາກິນຢາ (ຕົວຢ່າງ 08:00, 20:00)'},
+        {key:'Instructions', label:'ຄຳແນະນຳ', full:true, type:'textarea'},
+        {key:'Status', label:'ສະຖານະ', type:'select', options:['Pending','Dispensed','Cancelled'], default:'Pending'}
+      ];
+      var columns = [
+        {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+        {key:'Medication', label:'ຢາ'}, {key:'Dosage', label:'ຂະໜາດ'}, {key:'Status', label:'ສະຖານະ', type:'status'}
+      ];
+      renderCrudPage('Prescriptions', columns, fields);
+    });
+  });
+}
+
+/* ================= PHARMACY ================= */
+function renderPharmacy(){
+  var c = document.getElementById('pageContent');
+  c.innerHTML = '<div class="toolbar"><div style="font-weight:700;">ຄັງຢາ ແລະ ຈ່າຍຢາ</div><button class="btn btn-primary" onclick="openMedForm()"><i class="fa-solid fa-plus"></i> ເພີ່ມຢາ</button></div>'+
+    '<div class="card"><div class="table-wrap"><table><thead><tr><th>ຊື່ຢາ</th><th>Batch</th><th>ໝົດອາຍຸ</th><th>ຄົງເຫຼືອ</th><th>ລາຄາຂາຍ</th><th>ສະຖານະ</th><th></th></tr></thead><tbody id="medTbody"></tbody></table></div></div>'+
+    '<div class="card"><div class="card-title">ຈ່າຍຢາຕາມໃບສັ່ງ</div><div id="dispenseArea"></div></div>';
+
+  fetchList('Medications', function(list){
+    window.medData = list.filter(function(x){return x.Status!=='Deleted';});
+    document.getElementById('medTbody').innerHTML = window.medData.length ? window.medData.map(function(m){
+      var low = Number(m.Stock) <= Number(m.MinStock||0);
+      var expSoon = m.Expiry && (new Date(m.Expiry)-new Date())/86400000 <= 30;
+      return '<tr><td><b>'+m.GenericName+'</b><br><span style="font-size:11px;color:var(--muted);">'+(m.BrandName||'')+'</span></td><td>'+(m.Batch||'-')+'</td><td>'+(m.Expiry||'-')+(expSoon?' <span class="chip chip-yellow">ໃກ້ໝົດ</span>':'')+'</td>'+
+        '<td>'+m.Stock+(low?' <span class="chip chip-red">ໜ້ອຍ</span>':'')+'</td><td>'+fmtMoney(m.SellPrice)+'</td><td>'+statusChip(m.Status)+'</td>'+
+        '<td><button class="btn btn-outline btn-sm" onclick="openMedForm(\''+m.Id+'\')"><i class="fa-solid fa-pen"></i></button></td></tr>';
+    }).join('') : '<tr><td colspan="7" class="empty-state">ບໍ່ມີຂໍ້ມູນຢາ</td></tr>';
+  }, true);
+
+  fetchList('Prescriptions', function(pres){
+    var pending = pres.filter(function(p){return p.Status==='Pending';});
+    fetchList('Patients', function(patients){
+      document.getElementById('dispenseArea').innerHTML = pending.length ? pending.map(function(p){
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">'+
+          '<div><b>'+patientName(p.PatientId,patients)+'</b> — '+p.Medication+' ('+p.Dosage+', '+p.Quantity+')</div>'+
+          '<button class="btn btn-gold btn-sm" onclick="openDispenseForm(\''+p.Id+'\')">ຈ່າຍຢາ</button></div>';
+      }).join('') : '<div class="empty-state">ບໍ່ມີໃບສັ່ງຢາທີ່ຄ້າງຈ່າຍ</div>';
+    });
+  });
+}
+function openMedForm(id){
+  var existing = id ? window.medData.find(function(x){return x.Id===id;}) : null;
+  var fields = [
+    {key:'GenericName',label:'ຊື່ຢາ (Generic)',full:true},{key:'BrandName',label:'ຊື່ການຄ້າ'},
+    {key:'Category',label:'ໝວດໝູ່'},{key:'Unit',label:'ຫົວໜ່ວຍ'},{key:'Batch',label:'Batch No.'},
+    {key:'Expiry',label:'ວັນໝົດອາຍຸ',type:'date'},{key:'Stock',label:'ຈຳນວນຄົງເຫຼືອ',type:'number'},
+    {key:'MinStock',label:'ຈຳນວນຂັ້ນຕ່ຳ',type:'number'},{key:'CostPrice',label:'ລາຄາຕົ້ນທຶນ',type:'number'},
+    {key:'SellPrice',label:'ລາຄາຂາຍ',type:'number'},{key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
+  ];
+  var body = buildFormHtml(fields, existing) + '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="saveMed(\''+(id||'')+'\')">'+t('save')+'</button></div>';
+  window.medFields = fields;
+  openModal(id?'ແກ້ໄຂຂໍ້ມູນຢາ':'ເພີ່ມຢາໃໝ່', body);
+}
+function saveMed(id){
+  var data = collectFormData(window.medFields);
+  var ok = function(){ closeModal(); invalidate('Medications'); toast('ບັນທຶກສຳເລັດ'); renderPharmacy(); };
+  var fail = function(e){toast(e.message,'error');};
+  if (id) google.script.run.withSuccessHandler(ok).withFailureHandler(fail).apiUpdate('Medications', id, data, STATE.user.Id);
+  else google.script.run.withSuccessHandler(ok).withFailureHandler(fail).apiCreate('Medications', data, STATE.user.Id);
+}
+function openDispenseForm(prescId){
+  var meds = window.medData || [];
+  var body = '<div class="field"><label>ເລືອກຢາໃນຄັງ</label><select id="dispMed">'+meds.map(function(m){return '<option value="'+m.Id+'">'+m.GenericName+' (ຄົງເຫຼືອ '+m.Stock+')</option>';}).join('')+'</select></div>'+
+    '<div class="field"><label>ຈຳນວນ</label><input id="dispQty" type="number" value="1"></div>'+
+    '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="submitDispense(\''+prescId+'\')">ຢືນຢັນຈ່າຍຢາ</button></div>';
+  openModal('ຈ່າຍຢາ', body);
+}
+function submitDispense(prescId){
+  var medId = document.getElementById('dispMed').value;
+  var qty = document.getElementById('dispQty').value;
+  google.script.run.withSuccessHandler(function(){
+    closeModal(); invalidate('Medications'); invalidate('Prescriptions'); toast('ຈ່າຍຢາສຳເລັດ'); renderPharmacy();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiDispenseMedication(prescId, medId, qty, STATE.user.Id);
+}
+
+/* ================= LAB ================= */
+function renderLab(){
+  fetchList('Patients', function(patients){
+    fetchList('Doctors', function(doctors){
+      var fields = [
+        {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+        {key:'DoctorId', label:'ທ່ານໝໍສັ່ງ', type:'select', options:doctors.map(function(d){return {value:d.Id,label:d.Name};})},
+        {key:'TestName', label:'ຊື່ການກວດ'},
+        {key:'Priority', label:'ຄວາມສຳຄັນ', type:'select', options:['Normal','Urgent','STAT']},
+        {key:'SampleType', label:'ປະເພດຕົວຢ່າງ'},
+        {key:'Status', label:'ສະຖານະ', type:'select', options:['Ordered','Collected','Processing','Completed','Verified','Cancelled'], default:'Ordered'},
+        {key:'Notes', label:'ໝາຍເຫດ', full:true, type:'textarea'}
+      ];
+      var columns = [
+        {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+        {key:'TestName', label:'ການກວດ'}, {key:'Priority', label:'ຄວາມສຳຄັນ'}, {key:'Status', label:'ສະຖານະ', type:'status'}
+      ];
+      renderCrudPage('LabOrders', columns, fields);
+    });
+  });
+}
+
+/* ================= SERVICES ================= */
+function renderServices(){
+  var fields = [
+    {key:'Code',label:'ລະຫັດ'},{key:'Name',label:'ຊື່ບໍລິການ',full:true},
+    {key:'Category',label:'ໝວດໝູ່',type:'select',options:['General','Aesthetic','Laser','Injectable','Facial','Body','Hair']},
+    {key:'Duration',label:'ໄລຍະເວລາ (ນາທີ)',type:'number'},{key:'Price',label:'ລາຄາ',type:'number'},
+    {key:'Cost',label:'ຕົ້ນທຶນ',type:'number'},{key:'Commission',label:'ຄ່າຄອມມິສຊັ່ນ (%)',type:'number'},
+    {key:'Image',label:'URL ຮູບພາບ (ສະແດງໜ້າຮ້ານ)',full:true},
+    {key:'Featured',label:'ບໍລິການແນະນຳ? (ສະແດງໃນໜ້າຮ້ານ)',type:'checkbox',default:'false'},
+    {key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
+  ];
+  var columns = [{key:'Code',label:'ລະຫັດ'},{key:'Name',label:'ຊື່ບໍລິການ'},{key:'Category',label:'ໝວດ'},{key:'Price',label:'ລາຄາ',type:'money'},
+    {key:'Featured',label:'ແນະນຳ',render:function(r){return String(r.Featured).toLowerCase()==='true' ? '<span class="chip chip-blue">ແມ່ນ</span>' : '-';}},
+    {key:'Status',label:'ສະຖານະ',type:'status'}];
+  renderCrudPage('Services', columns, fields);
+}
+
+/* ================= TREATMENTS ================= */
+function renderTreatments(){
+  fetchList('Patients', function(patients){
+    fetchList('Doctors', function(doctors){
+      fetchList('Services', function(services){
+        var fields = [
+          {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+          {key:'DoctorId', label:'ທ່ານໝໍ/ຜູ້ຊ່ຽວຊານ', type:'select', options:doctors.map(function(d){return {value:d.Id,label:d.Name};})},
+          {key:'ServiceId', label:'ບໍລິການ', type:'select', options:services.map(function(s){return {value:s.Id,label:s.Name};})},
+          {key:'TreatmentArea', label:'ບໍລິເວນທີ່ປິ່ນປົວ'},
+          {key:'Product', label:'ຜະລິດຕະພັນ/ຢາທີ່ໃຊ້'},
+          {key:'Batch', label:'Batch No.'},
+          {key:'Quantity', label:'ປະລິມານທີ່ໃຊ້'},
+          {key:'Equipment', label:'ອຸປະກອນ/ຄ່າຕັ້ງຄ່າ'},
+          {key:'Complications', label:'ອາການແຊກຊ້ອນ', type:'textarea', full:true},
+          {key:'Aftercare', label:'ຄຳແນະນຳຫຼັງປິ່ນປົວ', type:'textarea', full:true},
+          {key:'Notes', label:'ໝາຍເຫດ', type:'textarea', full:true}
+        ];
+        var columns = [
+          {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+          {key:'TreatmentArea', label:'ບໍລິເວນ'}, {key:'Product', label:'ຜະລິດຕະພັນ'}, {key:'CreatedAt', label:'ວັນທີ', type:'date'}
+        ];
+        renderCrudPage('Treatments', columns, fields);
+      });
+    });
+  });
+}
+
+/* ================= BEFORE/AFTER PHOTOS ================= */
+function renderPhotos(){
+  fetchList('Patients', function(patients){
+    var c = document.getElementById('pageContent');
+    c.innerHTML = '<div class="toolbar"><div></div><button class="btn btn-primary" onclick="openPhotoForm()"><i class="fa-solid fa-camera"></i> ເພີ່ມຮູບ</button></div><div class="card" id="photoGrid"></div>';
+    fetchList('Photos', function(list){
+      window.photoData = list.filter(function(x){return x.Status!=='Deleted';}).reverse();
+      var grid = document.getElementById('photoGrid');
+      if (!window.photoData.length) { grid.innerHTML = '<div class="empty-state"><i class="fa-solid fa-camera-retro"></i>ຍັງບໍ່ມີຮູບພາບ</div>'; return; }
+      grid.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;">' + window.photoData.map(function(p){
+        return '<div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;">'+
+          '<img src="'+(p.Url||'https://placehold.co/300x220?text=No+Image')+'" style="width:100%;height:130px;object-fit:cover;">'+
+          '<div style="padding:8px 10px;"><b style="font-size:12px;">'+patientName(p.PatientId,patients)+'</b><br><span class="chip chip-blue" style="margin-top:4px;">'+p.PhotoType+'</span> <span style="font-size:11px;color:var(--muted);">'+(p.BodyArea||'')+'</span></div></div>';
+      }).join('') + '</div>';
+    }, true);
+  });
+}
+function openPhotoForm(){
+  fetchList('Patients', function(patients){
+    var body = '<div class="field"><label>ຄົນເຈັບ</label><select id="phPatient">'+patients.map(function(p){return '<option value="'+p.Id+'">'+p.FullName+' ('+p.HN+')</option>';}).join('')+'</select></div>'+
+      '<div class="field"><label>ປະເພດ</label><select id="phType"><option>Before</option><option>During</option><option>After</option><option>Follow-up</option></select></div>'+
+      '<div class="field"><label>ບໍລິເວນ</label><input id="phArea" placeholder="e.g. Cheeks, Forehead"></div>'+
+      '<div class="field"><label>URL ຮູບພາບ (Google Drive URL ຫຼື ອື່ນໆ)</label><input id="phUrl" placeholder="https://..."></div>'+
+      '<div class="demo-hint">ຕ້ອງໄດ້ຮັບການຍິນຍອມ (Consent) ຈາກຄົນເຈັບກ່ອນເກັບຮູບພາບ</div>'+
+      '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="submitPhoto()">'+t('save')+'</button></div>';
+    openModal('ເພີ່ມຮູບກ່ອນ/ຫຼັງ', body);
+  });
+}
+function submitPhoto(){
+  var data = {
+    PatientId: document.getElementById('phPatient').value,
+    PhotoType: document.getElementById('phType').value,
+    BodyArea: document.getElementById('phArea').value,
+    Url: document.getElementById('phUrl').value
+  };
+  google.script.run.withSuccessHandler(function(){
+    closeModal(); invalidate('Photos'); toast('ບັນທຶກຮູບແລ້ວ'); renderPhotos();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiCreate('Photos', data, STATE.user.Id);
+}
+
+/* ================= PACKAGES / MEMBERSHIP ================= */
+function renderPackages(){
+  fetchList('Patients', function(patients){
+    var fields = [
+      {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+      {key:'PackageName', label:'ຊື່ແພັກເກັດ', full:true},
+      {key:'TotalSessions', label:'ຈຳນວນຄັ້ງທັງໝົດ', type:'number'},
+      {key:'UsedSessions', label:'ໃຊ້ໄປແລ້ວ', type:'number', default:0},
+      {key:'Price', label:'ລາຄາ', type:'number'},
+      {key:'Expiry', label:'ວັນໝົດອາຍຸ', type:'date'},
+      {key:'Status', label:'ສະຖານະ', type:'select', options:['Active','Completed','Expired'], default:'Active'}
+    ];
+    var columns = [
+      {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+      {key:'PackageName', label:'ແພັກເກັດ'},
+      {key:'UsedSessions', label:'ໃຊ້ໄປ', render:function(r){return r.UsedSessions+' / '+r.TotalSessions;}},
+      {key:'Status', label:'ສະຖານະ', type:'status'},
+      {key:'use', label:'ໃຊ້ຄັ້ງ', render:function(r){return '<button class="btn btn-gold btn-sm" onclick="usePkgSession(\''+r.Id+'\')">ໃຊ້ 1 ຄັ້ງ</button>';}}
+    ];
+    renderCrudPage('Packages', columns, fields);
+  });
+}
+function usePkgSession(id){
+  google.script.run.withSuccessHandler(function(){ invalidate('Packages'); toast('ຫັກຄັ້ງໃຊ້ງານແລ້ວ'); renderPackages(); })
+    .withFailureHandler(function(e){toast(e.message,'error');}).apiUsePackageSession(id, STATE.user.Id);
+}
+
+/* ================= CONSENTS ================= */
+function renderConsents(){
+  fetchList('Patients', function(patients){
+    var fields = [
+      {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+      {key:'FormType', label:'ປະເພດໃບຍິນຍອມ', type:'select', options:['General Treatment','Procedure','Photography','Data Processing','Aesthetic Procedure']},
+      {key:'Version', label:'ເວີຊັນຟອມ', default:'v1.0'},
+      {key:'SignatureUrl', label:'URL ລາຍເຊັນ/ໄຟລ໌'},
+    ];
+    var columns = [
+      {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+      {key:'FormType', label:'ປະເພດ'}, {key:'Version', label:'ເວີຊັນ'}, {key:'CreatedAt', label:'ວັນທີ', type:'date'}
+    ];
+    renderCrudPage('Consents', columns, fields);
+  });
+}
+
+/* ================= INVOICES / POS ================= */
+function renderInvoices(){
+  var c = document.getElementById('pageContent');
+  c.innerHTML = '<div class="toolbar"><div></div><button class="btn btn-primary" onclick="openInvoiceForm()"><i class="fa-solid fa-cash-register"></i> ສ້າງໃບບິນ</button></div>'+
+    '<div class="card"><div class="table-wrap"><table><thead><tr><th>ເລກທີ</th><th>ຄົນເຈັບ</th><th>ລວມ</th><th>ຊຳລະແລ້ວ</th><th>ຄ້າງຊຳລະ</th><th>ສະຖານະ</th><th></th></tr></thead><tbody id="invTbody"></tbody></table></div></div>';
+  fetchList('Patients', function(patients){
+    fetchList('Invoices', function(list){
+      window.invData = list.filter(function(x){return x.Status!=='Deleted';}).reverse();
+      document.getElementById('invTbody').innerHTML = window.invData.length ? window.invData.map(function(inv){
+        return '<tr><td><b>'+inv.InvoiceNo+'</b></td><td>'+patientName(inv.PatientId,patients)+'</td><td>'+fmtMoney(inv.Total)+'</td><td>'+fmtMoney(inv.Paid)+'</td><td>'+fmtMoney(inv.Balance)+'</td><td>'+statusChip(inv.Status)+'</td>'+
+          '<td>'+(Number(inv.Balance)>0?'<button class="btn btn-gold btn-sm" onclick="openPayForm(\''+inv.Id+'\')">ຊຳລະ</button>':'')+' <button class="btn btn-outline btn-sm" onclick="openRefundForm(\''+inv.Id+'\')">ຄືນເງິນ</button></td></tr>';
+      }).join('') : '<tr><td colspan="7" class="empty-state">ບໍ່ມີໃບບິນ</td></tr>';
+    }, true);
+  });
+}
+function openInvoiceForm(){
+  fetchList('Patients', function(patients){
+    fetchList('Services', function(services){
+      var body = '<div class="field"><label>ຄົນເຈັບ</label><select id="invPatient">'+patients.map(function(p){return '<option value="'+p.Id+'">'+p.FullName+' ('+p.HN+')</option>';}).join('')+'</select></div>'+
+        '<div class="field"><label>ບໍລິການ</label><select id="invService" onchange="updateInvPrice()">'+services.map(function(s){return '<option value="'+s.Id+'" data-price="'+s.Price+'">'+s.Name+' - '+fmtMoney(s.Price)+'</option>';}).join('')+'</select></div>'+
+        '<div class="field"><label>ຈຳນວນເງິນລວມ</label><input id="invTotal" type="number" value="0"></div>'+
+        '<div class="field"><label>ສ່ວນຫຼຸດ</label><input id="invDiscount" type="number" value="0"></div>'+
+        '<div class="field"><label>ຊຳລະທັນທີ (ຖ້າມີ)</label><input id="invPaid" type="number" value="0"></div>'+
+        '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="submitInvoice()">ສ້າງໃບບິນ</button></div>';
+      openModal('ສ້າງໃບບິນ / POS', body);
+      updateInvPrice();
+    });
+  });
+}
+function updateInvPrice(){
+  var sel = document.getElementById('invService');
+  var price = sel.options[sel.selectedIndex].getAttribute('data-price');
+  document.getElementById('invTotal').value = price;
+}
+function submitInvoice(){
+  var sel = document.getElementById('invService');
+  var svcName = sel.options[sel.selectedIndex].text;
+  var data = {
+    PatientId: document.getElementById('invPatient').value,
+    Items: JSON.stringify([{name:svcName, qty:1}]),
+    Discount: document.getElementById('invDiscount').value || 0,
+    Tax: 0,
+    Total: (Number(document.getElementById('invTotal').value) - Number(document.getElementById('invDiscount').value||0)),
+    Paid: document.getElementById('invPaid').value || 0,
+    Branch: STATE.user.Branch || ''
+  };
+  google.script.run.withSuccessHandler(function(){
+    closeModal(); invalidate('Invoices'); toast('ສ້າງໃບບິນສຳເລັດ'); renderInvoices();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiCreateInvoice(data, STATE.user.Id);
+}
+function openPayForm(invId){
+  var body = '<div class="field"><label>ຈຳນວນເງິນ</label><input id="payAmount" type="number"></div>'+
+    '<div class="field"><label>ວິທີການຊຳລະ</label><select id="payMethod"><option>Cash</option><option>Bank Transfer</option><option>QR Payment</option><option>Card</option></select></div>'+
+    '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="submitPayment(\''+invId+'\')">ຢືນຢັນຊຳລະ</button></div>';
+  openModal('ຮັບຊຳລະເງິນ', body);
+}
+function submitPayment(invId){
+  var amt = document.getElementById('payAmount').value;
+  var method = document.getElementById('payMethod').value;
+  google.script.run.withSuccessHandler(function(){
+    closeModal(); invalidate('Invoices'); toast('ຊຳລະເງິນສຳເລັດ'); renderInvoices();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiAddPayment(invId, amt, method, STATE.user.Id);
+}
+function openRefundForm(invId){
+  var body = '<div class="field"><label>ຈຳນວນເງິນຄືນ</label><input id="refAmount" type="number"></div>'+
+    '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-danger" onclick="submitRefund(\''+invId+'\')">ຢືນຢັນຄືນເງິນ</button></div>';
+  openModal('ຄືນເງິນ', body);
+}
+function submitRefund(invId){
+  var amt = document.getElementById('refAmount').value;
+  google.script.run.withSuccessHandler(function(){
+    closeModal(); invalidate('Invoices'); toast('ຄືນເງິນສຳເລັດ'); renderInvoices();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiRefund(invId, amt, STATE.user.Id, STATE.user.Id);
+}
+
+/* ================= INVENTORY ================= */
+function renderInventory(){
+  var fields = [
+    {key:'SKU',label:'SKU'},{key:'Name',label:'ຊື່ສິນຄ້າ',full:true},
+    {key:'Category',label:'ໝວດໝູ່'},{key:'Unit',label:'ຫົວໜ່ວຍ'},{key:'Batch',label:'Batch'},
+    {key:'Expiry',label:'ວັນໝົດອາຍຸ',type:'date'},{key:'Stock',label:'ຈຳນວນຄົງເຫຼືອ',type:'number'},
+    {key:'MinStock',label:'ຂັ້ນຕ່ຳ',type:'number'},{key:'CostPrice',label:'ຕົ້ນທຶນ',type:'number'},
+    {key:'SellPrice',label:'ລາຄາຂາຍ',type:'number'},{key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
+  ];
+  var columns = [{key:'SKU',label:'SKU'},{key:'Name',label:'ຊື່ສິນຄ້າ'},{key:'Stock',label:'ຄົງເຫຼືອ'},{key:'SellPrice',label:'ລາຄາ',type:'money'},{key:'Status',label:'ສະຖານະ',type:'status'}];
+  renderCrudPage('Inventory', columns, fields);
+}
+
+/* ================= SUPPLIERS ================= */
+function renderSuppliers(){
+  var fields = [
+    {key:'Company',label:'ຊື່ບໍລິສັດ',full:true},{key:'Contact',label:'ຜູ້ຕິດຕໍ່'},
+    {key:'Phone',label:'ໂທລະສັບ'},{key:'Email',label:'ອີເມວ'},{key:'Address',label:'ທີ່ຢູ່',full:true},
+    {key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
+  ];
+  var columns = [{key:'Company',label:'ບໍລິສັດ'},{key:'Contact',label:'ຜູ້ຕິດຕໍ່'},{key:'Phone',label:'ໂທລະສັບ'},{key:'Status',label:'ສະຖານະ',type:'status'}];
+  renderCrudPage('Suppliers', columns, fields);
+}
+
+/* ================= FOLLOW-UPS ================= */
+function renderFollowups(){
+  fetchList('Patients', function(patients){
+    var fields = [
+      {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
+      {key:'Reason', label:'ເຫດຜົນຕິດຕາມ', full:true},
+      {key:'DueDate', label:'ວັນຄົບກຳນົດ', type:'date'},
+      {key:'AssignedTo', label:'ມອບໝາຍໃຫ້'},
+      {key:'Status', label:'ສະຖານະ', type:'select', options:['Pending','Done','Cancelled'], default:'Pending'},
+      {key:'Notes', label:'ໝາຍເຫດ', type:'textarea', full:true}
+    ];
+    var columns = [
+      {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
+      {key:'Reason', label:'ເຫດຜົນ'}, {key:'DueDate', label:'ຄົບກຳນົດ'}, {key:'Status', label:'ສະຖານະ', type:'status'}
+    ];
+    renderCrudPage('FollowUps', columns, fields);
+  });
+}
+
+/* ================= CRM ================= */
+function renderCRM(){
+  fetchList('Patients', function(patients){
+    fetchList('Invoices', function(invoices){
+      var c = document.getElementById('pageContent');
+      var segments = {New:0, Active:0, VIP:0, Inactive:0};
+      var enriched = patients.filter(function(p){return p.Status!=='Deleted';}).map(function(p){
+        var inv = invoices.filter(function(i){return i.PatientId===p.Id;});
+        var total = inv.reduce(function(s,i){return s+Number(i.Paid||0);},0);
+        var seg = total > 2000000 ? 'VIP' : (inv.length > 0 ? 'Active' : 'New');
+        segments[seg] = (segments[seg]||0)+1;
+        return {p:p, total:total, visits:inv.length, seg:seg};
+      }).sort(function(a,b){return b.total-a.total;});
+
+      c.innerHTML = '<div class="stat-grid">' + Object.keys(segments).map(function(k,i){
+        var colors=['#0f766e','#2563eb','#c9a227','#e11d48'];
+        return '<div class="stat-card"><div class="icon" style="background:'+colors[i]+';width:36px;height:36px;"><i class="fa-solid fa-user-group"></i></div><div class="val">'+segments[k]+'</div><div class="lbl">'+k+'</div></div>';
+      }).join('') + '</div>'+
+      '<div class="card"><div class="card-title">ລູກຄ້າຕາມມູນຄ່າ (Top Customers)</div><div class="table-wrap"><table><thead><tr><th>ຄົນເຈັບ</th><th>ຍອດຊື້ລວມ</th><th>ຈຳນວນຄັ້ງ</th><th>ກຸ່ມ</th></tr></thead><tbody>'+
+        enriched.slice(0,30).map(function(e){
+          var chipC = e.seg==='VIP'?'yellow':(e.seg==='Active'?'green':'blue');
+          return '<tr><td>'+e.p.FullName+'</td><td>'+fmtMoney(e.total)+'</td><td>'+e.visits+'</td><td><span class="chip chip-'+chipC+'">'+e.seg+'</span></td></tr>';
+        }).join('') + '</tbody></table></div></div>';
+    });
+  });
+}
+
+/* ================= REPORTS ================= */
+function renderReports(){
+  var c = document.getElementById('pageContent');
+  c.innerHTML = '<div class="card"><div class="card-title">ລາຍງານລາຍຮັບ (Revenue Report)</div>'+
+    '<div class="toolbar"><input type="date" id="repFrom"> <input type="date" id="repTo"> <button class="btn btn-primary btn-sm" onclick="loadRevReport()">ສະແດງ</button></div>'+
+    '<div id="repChart"></div></div>'+
+    '<div class="section-grid">'+
+    '<div class="card"><div class="card-title">ບໍລິການຍອດນິຍົມ</div><div id="repServices"></div></div>'+
+    '<div class="card"><div class="card-title">ສະຫຼຸບຄັງສິນຄ້າ</div><div id="repInventory"></div></div>'+
+    '</div>';
+  var today = new Date().toISOString().substring(0,10);
+  var monthAgo = new Date(Date.now()-30*86400000).toISOString().substring(0,10);
+  document.getElementById('repFrom').value = monthAgo;
+  document.getElementById('repTo').value = today;
+  loadRevReport();
+
+  fetchList('Invoices', function(invoices){
+    fetchList('Services', function(services){
+      var items = {};
+      invoices.forEach(function(inv){
+        try {
+          JSON.parse(inv.Items||'[]').forEach(function(it){ items[it.name] = (items[it.name]||0)+1; });
+        } catch(e){}
+      });
+      var arr = Object.keys(items).map(function(k){return {name:k, count:items[k]};}).sort(function(a,b){return b.count-a.count;}).slice(0,8);
+      document.getElementById('repServices').innerHTML = arr.length ? arr.map(function(a){
+        return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>'+a.name+'</span><b>'+a.count+'</b></div>';
+      }).join('') : '<div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div>';
+    });
+  });
+  fetchList('Medications', function(meds){
+    var low = meds.filter(function(m){return Number(m.Stock)<=Number(m.MinStock||0);});
+    document.getElementById('repInventory').innerHTML =
+      '<div style="font-size:13px;margin-bottom:8px;">ຈຳນວນລາຍການທັງໝົດ: <b>'+meds.length+'</b></div>'+
+      '<div style="font-size:13px;color:var(--danger);">ໃກ້ໝົດສາງ: <b>'+low.length+'</b> ລາຍການ</div>';
+  });
+}
+function loadRevReport(){
+  var from = document.getElementById('repFrom').value;
+  var to = document.getElementById('repTo').value;
+  google.script.run.withSuccessHandler(function(data){
+    var max = Math.max.apply(null, data.map(function(d){return d.revenue;}).concat([1]));
+    document.getElementById('repChart').innerHTML = data.length ? '<div style="display:flex;align-items:flex-end;gap:6px;height:160px;overflow-x:auto;">' +
+      data.map(function(d){
+        var h = Math.max(6,(d.revenue/max)*150);
+        return '<div style="min-width:24px;text-align:center;"><div style="background:linear-gradient(180deg,var(--primary),var(--accent));height:'+h+'px;border-radius:4px 4px 0 0;" title="'+fmtMoney(d.revenue)+'"></div><div style="font-size:9px;color:var(--muted);margin-top:4px;">'+d.date.substring(5)+'</div></div>';
+      }).join('') + '</div>' : '<div class="empty-state">ບໍ່ມີຂໍ້ມູນໃນຊ່ວງເວລານີ້</div>';
+  }).apiRevenueReport(from, to);
+}
+
+/* ================= BRANCHES / DOCTORS / USERS / AUDIT ================= */
+function renderBranches(){
+  var fields = [{key:'Name',label:'ຊື່ສາຂາ',full:true},{key:'Address',label:'ທີ່ຢູ່',full:true},{key:'Phone',label:'ໂທລະສັບ'},{key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}];
+  var columns = [{key:'Name',label:'ຊື່ສາຂາ'},{key:'Address',label:'ທີ່ຢູ່'},{key:'Phone',label:'ໂທລະສັບ'},{key:'Status',label:'ສະຖານະ',type:'status'}];
+  renderCrudPage('Branches', columns, fields);
+}
+function renderDoctors(){
+  fetchList('Branches', function(branches){
+    var fields = [
+      {key:'Name',label:'ຊື່ທ່ານໝໍ',full:true},{key:'Specialty',label:'ຄວາມຊ່ຽວຊານ'},
+      {key:'Branch',label:'ສາຂາ',type:'select',options:branches.map(function(b){return b.Name;})},
+      {key:'Phone',label:'ໂທລະສັບ'},{key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
+    ];
+    var columns = [{key:'Name',label:'ຊື່'},{key:'Specialty',label:'ຄວາມຊ່ຽວຊານ'},{key:'Branch',label:'ສາຂາ'},{key:'Status',label:'ສະຖານະ',type:'status'}];
+    renderCrudPage('Doctors', columns, fields);
+  });
+}
+function renderUsers(){
+  if (STATE.user.Role !== 'SuperAdmin' && STATE.user.Role !== 'ClinicOwner') {
+    document.getElementById('pageContent').innerHTML = '<div class="empty-state"><i class="fa-solid fa-lock"></i>ທ່ານບໍ່ມີສິດເຂົ້າເຖິງໜ້ານີ້</div>'; return;
+  }
+  var roles = ['SuperAdmin','ClinicOwner','BranchManager','Receptionist','Doctor','Nurse','Pharmacist','LabTechnician','AestheticSpecialist','Cashier','Accountant','InventoryManager','MarketingStaff','CustomerService','Staff','Auditor'];
+  var fields = [
+    {key:'Username',label:'Username'},{key:'FullName',label:'ຊື່ເຕັມ'},
+    {key:'Role',label:'ຕຳແໜ່ງ',type:'select',options:roles},
+    {key:'Branch',label:'ສາຂາ'},{key:'Phone',label:'ໂທລະສັບ'},
+    {key:'Password',label:'ລະຫັດຜ່ານ (ຖ້າສ້າງໃໝ່)',type:'password'},
+    {key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
+  ];
+  var columns = [{key:'Username',label:'Username'},{key:'FullName',label:'ຊື່'},{key:'Role',label:'ຕຳແໜ່ງ'},{key:'Status',label:'ສະຖານະ',type:'status'}];
+  renderCrudPage('Users', columns, fields);
+}
+
+function renderAudit(){
+  var c = document.getElementById('pageContent');
+  c.innerHTML = '<div class="card"><div class="table-wrap"><table><thead><tr><th>ວັນທີ</th><th>ຜູ້ໃຊ້</th><th>ຄຳສັ່ງ</th><th>Entity</th><th>Entity ID</th></tr></thead><tbody id="auditTbody"><tr><td colspan="5" class="empty-state">Loading...</td></tr></tbody></table></div></div>';
+  fetchList('AuditLog', function(list){
+    var data = list.reverse().slice(0,200);
+    document.getElementById('auditTbody').innerHTML = data.length ? data.map(function(a){
+      return '<tr><td>'+fmtDate(a.CreatedAt)+'</td><td>'+a.UserId+'</td><td>'+statusChip(a.Action)+'</td><td>'+a.Entity+'</td><td>'+a.EntityId+'</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="empty-state">ບໍ່ມີ Log</td></tr>';
+  }, true);
+}
+
+/* override submitCrudForm for Users to hash password ຝັ່ງ server ແລະ ບໍ່ໃຫ້ overwrite hash ດ້ວຍຄ່າຫວ່າງ */
+var _origSubmit = submitCrudForm;
+submitCrudForm = function(entity, id){
+  if (entity === 'Users') {
+    var fields = window.currentCrudFields;
+    var data = collectFormData(fields);
+    if (!data.Password) delete data.Password; // ບໍ່ປ່ຽນລະຫັດຖ້າຊ່ອງນີ້ວ່າງ
+    var handler = function(){ closeModal(); invalidate('Users'); toast('ບັນທຶກສຳເລັດ'); renderPage(STATE.currentPage); };
+    var fail = function(e){ toast(e.message,'error'); };
+    if (id) {
+      google.script.run.withSuccessHandler(handler).withFailureHandler(fail).apiUpdateUser(id, data, STATE.user.Id);
+    } else {
+      google.script.run.withSuccessHandler(handler).withFailureHandler(fail).apiCreateUser(data);
+    }
+    return;
+  }
+  _origSubmit(entity, id);
+};
+
+/* ================= SETTINGS PANEL ================= */
+function openSettings(){
+  var s = STATE.settings;
+  var body = '<div class="form-grid">'+
+    '<div class="field full"><label>ຊື່ຄລີນິກ (ລາວ)</label><input id="setClinicLa" value="'+esc(s.clinic_name_la)+'"></div>'+
+    '<div class="field full"><label>ຊື່ຄລີນິກ (English)</label><input id="setClinicEn" value="'+esc(s.clinic_name)+'"></div>'+
+    '<div class="field full"><label>ຄຳຂວັນ / Tagline</label><input id="setTagline" value="'+esc(s.clinic_tagline)+'"></div>'+
+    '<div class="field full"><label>URL ໂລໂກ້ (Logo URL)</label><input id="setLogo" value="'+esc(s.logo_url)+'"></div>'+
+    '<div class="field"><label>ສີຫຼັກ (Primary)</label><input id="setPrimary" type="color" value="'+(s.primary_color||'#0f766e')+'" class="color-swatch"></div>'+
+    '<div class="field"><label>ສີຄຳ (Accent)</label><input id="setAccent" type="color" value="'+(s.accent_color||'#c9a227')+'" class="color-swatch"></div>'+
+    '<div class="field"><label>ສະກຸນເງິນ</label><select id="setCurrency"><option value="LAK">LAK</option><option value="THB">THB</option><option value="USD">USD</option></select></div>'+
+    '<div class="field"><label>ຄຳນຳໜ້າໃບບິນ</label><input id="setInvPrefix" value="'+esc(s.invoice_prefix)+'"></div>'+
+    '<div class="field full"><label>ຂໍ້ຄວາມແລ່ນ (Marquee)</label><input id="setMarquee" value="'+esc(s.marquee_text)+'"></div>'+
+    '</div>'+
+    '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="saveSettings()">'+t('save')+'</button></div>';
+  openModal(t('settings'), body);
+  setTimeout(function(){ document.getElementById('setCurrency').value = s.currency||'LAK'; }, 50);
+}
+function saveSettings(){
+  var updates = {
+    clinic_name_la: document.getElementById('setClinicLa').value,
+    clinic_name: document.getElementById('setClinicEn').value,
+    clinic_tagline: document.getElementById('setTagline').value,
+    logo_url: document.getElementById('setLogo').value,
+    primary_color: document.getElementById('setPrimary').value,
+    accent_color: document.getElementById('setAccent').value,
+    currency: document.getElementById('setCurrency').value,
+    invoice_prefix: document.getElementById('setInvPrefix').value,
+    marquee_text: document.getElementById('setMarquee').value
+  };
+  google.script.run.withSuccessHandler(function(){
+    closeModal(); loadSettings(); toast('ບັນທຶກການຕັ້ງຄ່າແລ້ວ');
+  }).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message,'error'); }).apiSetSettingsBulk(updates, STATE.user.Id);
+}
+
+function openNotifPanel(){
+  openModal('ການແຈ້ງເຕືອນ', '<div class="empty-state"><i class="fa-solid fa-bell"></i>ບໍ່ມີການແຈ້ງເຕືອນໃໝ່</div>');
+}
+</script>
+</body>
+</html>
