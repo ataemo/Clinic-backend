@@ -684,12 +684,35 @@ function buildFormHtml(fields, data){
     if (f.type === 'textarea') {
       return '<div class="field'+full+'"><label>'+f.label+'</label><textarea id="f_'+f.key+'" rows="3">'+(val||'')+'</textarea></div>';
     }
-    if (f.type === 'checkbox') {
-      var checked = (String(val).toLowerCase()==='true') ? 'checked' : '';
-      return '<div class="field'+full+'"><label>'+f.label+'</label><select id="f_'+f.key+'"><option value="false" '+(checked?'':'selected')+'>ບໍ່</option><option value="true" '+(checked?'selected':'')+'>ແມ່ນ</option></select></div>';
+    if (f.type === 'image') {
+      return '<div class="field'+full+'"><label>'+f.label+'</label>'+
+        '<img id="imgprev_'+f.key+'" src="'+esc(val||'')+'" style="width:120px;height:90px;object-fit:cover;border-radius:10px;margin-bottom:8px;background:var(--bg);display:'+(val?'block':'none')+';" onerror="this.style.display=\'none\'">'+
+        '<input id="f_'+f.key+'" type="text" value="'+esc(val)+'" placeholder="https://..." oninput="var im=document.getElementById(\'imgprev_'+f.key+'\');im.src=this.value;im.style.display=this.value?\'block\':\'none\';">'+
+        '<input type="file" accept="image/*" style="margin-top:6px;" onchange="handleImageFieldUpload(this,\''+f.key+'\')">'+
+        '<span id="upstat_'+f.key+'" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;"></span></div>';
     }
     return '<div class="field'+full+'"><label>'+f.label+'</label><input id="f_'+f.key+'" type="'+(f.type||'text')+'" value="'+esc(val)+'"></div>';
   }).join('') + '</div>';
+}
+
+function handleImageFieldUpload(input, fieldKey){
+  var file = input.files[0];
+  if (!file) return;
+  var status = document.getElementById('upstat_'+fieldKey);
+  status.textContent = 'ກຳລັງອັບໂຫລດ...';
+  var reader = new FileReader();
+  reader.onload = function(){
+    var base64 = reader.result.split(',')[1];
+    google.script.run.withSuccessHandler(function(res){
+      document.getElementById('f_'+fieldKey).value = res.url;
+      var im = document.getElementById('imgprev_'+fieldKey);
+      im.src = res.url; im.style.display='block';
+      status.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
+    }).withFailureHandler(function(e){
+      status.textContent = 'ຜິດພາດ: ' + e.message;
+    }).apiUploadImage(base64, file.name, file.type);
+  };
+  reader.readAsDataURL(file);
 }
 
 function openCrudForm(entity, existing){
@@ -1447,7 +1470,7 @@ function getServiceFields(cb){
       {key:'Category',label:'ໝວດໝູ່',type:'select',options: cats.length ? cats : ['General']},
       {key:'Duration',label:'ໄລຍະເວລາ (ນາທີ)',type:'number'},{key:'Price',label:'ລາຄາ',type:'number'},
       {key:'Cost',label:'ຕົ້ນທຶນ',type:'number'},{key:'Commission',label:'ຄ່າຄອມມິສຊັ່ນ (%)',type:'number'},
-      {key:'Image',label:'URL ຮູບພາບ (ສະແດງໜ້າຮ້ານ)',full:true},
+      {key:'Image',label:'ຮູບພາບບໍລິການ (ສະແດງໜ້າຮ້ານ)',full:true,type:'image'},
       {key:'Featured',label:'ບໍລິການແນະນຳ? (ສະແດງໃນໜ້າຮ້ານ)',type:'checkbox',default:'false'},
       {key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
     ];
