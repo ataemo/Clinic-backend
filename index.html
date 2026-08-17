@@ -980,40 +980,65 @@ function saveMarquee(){
   }).withFailureHandler(function(e){toast(e.message,'error');}).apiSetSetting('marquee_text', val, STATE.user.Id);
 }
 
-/* ---- ແທັບ 3: ໄອຄອນໝວດໝູ່ ---- */
+/* ---- ແທັບ 3: ຈັດການໝວດໝູ່ (ໃໝ່: ເພີ່ມ/ແກ້ຊື່/ລຶບໄດ້) ---- */
 function renderSfCategories(){
-  fetchList('Services', function(services){
-    var allCats = [];
-    services.forEach(function(s){ if (s.Category && allCats.indexOf(s.Category)===-1) allCats.push(s.Category); });
-    var order = [];
-    try { order = JSON.parse(STATE.settings.category_order || '[]'); } catch(e){ order = []; }
-    var cats = order.filter(function(c){ return allCats.indexOf(c)>-1; });
-    allCats.forEach(function(c){ if (cats.indexOf(c)===-1) cats.push(c); });
+  document.getElementById('sfBody').innerHTML = '<div class="empty-state">ກຳລັງໂຫລດ...</div>';
+  google.script.run.withSuccessHandler(function(cats){
     window.sfCats = cats;
     var icons = {};
-    try { icons = JSON.parse(STATE.settings.category_icons||'{}'); } catch(e){ icons={}; }
+    try { icons = JSON.parse(STATE.settings.category_icons || '{}'); } catch(e){ icons = {}; }
     window.sfTempIcons = icons;
-    if (!cats.length) { document.getElementById('sfBody').innerHTML = '<div class="empty-state"><i class="fa-solid fa-tags"></i>ຍັງບໍ່ມີໝວດໝູ່ (ໄປເພີ່ມ Category ໃນໜ້າ "ບໍລິການ" ກ່ອນ)</div>'; return; }
     redrawCategoryList();
-  });
+  }).withFailureHandler(function(e){ toast(e.message,'error'); }).apiCategoryList();
 }
 function redrawCategoryList(){
   var cats = window.sfCats;
   var icons = window.sfTempIcons || {};
   var body = document.getElementById('sfBody');
-  body.innerHTML = '<div class="card"><div class="card-title">ລຳດັບ ແລະ ໄອຄອນປະຈຳໝວດໝູ່</div>'+
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">ໃຊ້ປຸ່ມ ↑↓ ເພື່ອຈັດລຳດັບການສະແດງຢູ່ໜ້າຮ້ານ, ໃສ່ Font Awesome icon (ເຊັ່ນ fa-spa) — ຢ່າລືມກົດ "ບັນທຶກ" ຫຼັງແກ້ໄຂ</div>'+
-    cats.map(function(c,i){
+  body.innerHTML = '<div class="card"><div class="card-title">ຈັດການໝວດໝູ່ບໍລິການ'+
+    '<button class="btn btn-primary btn-sm" onclick="openAddCategoryForm()"><i class="fa-solid fa-plus"></i> ເພີ່ມໝວດໝູ່</button></div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">↑↓ ຈັດລຳດັບ, ໃສ່ Font Awesome icon (ເຊັ່ນ fa-spa), ແກ້ໄຂ/ລຶບໄດ້ໂດຍກົງ — ຢ່າລືມກົດ "ບັນທຶກລຳດັບ/ໄອຄອນ" ຫຼັງແກ້</div>'+
+    (cats.length ? cats.map(function(c,i){
       var safeId = c.replace(/[^a-zA-Z0-9]/g,'_');
       return '<div class="field" style="display:flex;align-items:center;gap:10px;">'+
         '<div style="display:flex;gap:4px;">'+
         (i>0?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',-1)"><i class="fa-solid fa-arrow-up"></i></button>':'')+
         (i<cats.length-1?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',1)"><i class="fa-solid fa-arrow-down"></i></button>':'')+
         '</div>'+
-        '<label style="min-width:160px;margin:0;">'+c+'</label>'+
-        '<input id="ci_'+safeId+'" value="'+esc(icons[c]||'')+'" placeholder="fa-spa" style="flex:1;"></div>';
-    }).join('') +
-    '<button class="btn btn-primary" onclick="saveCategoryIcons()" style="margin-top:10px;">'+t('save')+'</button></div>';
+        '<label style="min-width:140px;margin:0;">'+c+'</label>'+
+        '<input id="ci_'+safeId+'" value="'+esc(icons[c]||'')+'" placeholder="fa-spa" style="flex:1;">'+
+        '<button class="btn btn-outline btn-sm" onclick="renameCategory(\''+c+'\')" title="ແກ້ໄຂຊື່"><i class="fa-solid fa-pen"></i></button>'+
+        '<button class="btn btn-danger btn-sm" onclick="deleteCategory(\''+c+'\')" title="ລຶບ"><i class="fa-solid fa-trash"></i></button>'+
+        '</div>';
+    }).join('') : '<div class="empty-state"><i class="fa-solid fa-tags"></i>ຍັງບໍ່ມີໝວດໝູ່ — ກົດ "ເພີ່ມໝວດໝູ່" ເພື່ອສ້າງໃໝ່</div>') +
+    (cats.length ? '<button class="btn btn-primary" onclick="saveCategoryIcons()" style="margin-top:10px;">ບັນທຶກລຳດັບ/ໄອຄອນ</button>' : '') +
+    '</div>';
+}
+function openAddCategoryForm(){
+  var body = '<div class="field full"><label>ຊື່ໝວດໝູ່ໃໝ່</label><input id="newCatName" placeholder="ເຊັ່ນ: Facial"></div>'+
+    '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button>'+
+    '<button class="btn btn-primary" onclick="submitAddCategory()">ເພີ່ມ</button></div>';
+  openModal('ເພີ່ມໝວດໝູ່ໃໝ່', body);
+}
+function submitAddCategory(){
+  var name = document.getElementById('newCatName').value.trim();
+  if (!name) { toast('ກະລຸນາປ້ອນຊື່ໝວດໝູ່','error'); return; }
+  google.script.run.withSuccessHandler(function(){
+    closeModal(); toast('ເພີ່ມໝວດໝູ່ສຳເລັດ'); renderSfCategories();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiCategoryAdd(name, STATE.user.Id);
+}
+function renameCategory(oldName){
+  var name = prompt('ປ້ອນຊື່ໝວດໝູ່ໃໝ່:', oldName);
+  if (!name || !name.trim() || name.trim()===oldName) return;
+  google.script.run.withSuccessHandler(function(){
+    invalidate('Services'); toast('ແກ້ໄຂຊື່ໝວດໝູ່ສຳເລັດ'); renderSfCategories();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiCategoryRename(oldName, name.trim(), STATE.user.Id);
+}
+function deleteCategory(name){
+  if (!confirm('ຢືນຢັນລຶບໝວດໝູ່ "'+name+'"?')) return;
+  google.script.run.withSuccessHandler(function(){
+    toast('ລຶບໝວດໝູ່ສຳເລັດ'); renderSfCategories();
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiCategoryDelete(name, STATE.user.Id);
 }
 function moveCategory(i, dir){
   var tempIcons = {};
@@ -1033,32 +1058,87 @@ function saveCategoryIcons(){
     var el = document.getElementById('ci_'+c.replace(/[^a-zA-Z0-9]/g,'_'));
     if (el && el.value.trim()) icons[c] = el.value.trim();
   });
-  var updates = { category_icons: JSON.stringify(icons), category_order: JSON.stringify(window.sfCats) };
+  var updates = {
+    category_icons: JSON.stringify(icons),
+    category_master: JSON.stringify(window.sfCats),
+    category_order: JSON.stringify(window.sfCats)
+  };
   google.script.run.withSuccessHandler(function(){
     Object.assign(STATE.settings, updates); toast('ບັນທຶກສຳເລັດ');
   }).withFailureHandler(function(e){toast(e.message,'error');}).apiSetSettingsBulk(updates, STATE.user.Id);
 }
 
-/* ---- ແທັບ 4: ບໍລິການແນະນຳ ---- */
+/* ---- ແທັບ 4: ບໍລິການແນະນຳ (ໃໝ່: ຮູບ + ຈັດລຳດັບ + ແກ້ໄຂ) ---- */
 function renderSfFeatured(){
   fetchList('Services', function(services){
     var body = document.getElementById('sfBody');
     var active = services.filter(function(s){return s.Status!=='Deleted';});
     if (!active.length) { body.innerHTML = '<div class="empty-state">ຍັງບໍ່ມີບໍລິການ (ໄປເພີ່ມໃນໜ້າ "ບໍລິການ" ກ່ອນ)</div>'; return; }
-    body.innerHTML = '<div class="card"><div class="card-title">ເລືອກບໍລິການແນະນຳ (ສະແດງຢູ່ໜ້າຮ້ານ ໃນສ່ວນ "ບໍລິການແນະນຳ")</div>'+
-      '<div class="table-wrap"><table><thead><tr><th></th><th>ຊື່ບໍລິການ</th><th>ໝວດ</th><th>ລາຄາ</th></tr></thead><tbody>'+
+
+    var featOrder = [];
+    try { featOrder = JSON.parse(STATE.settings.featured_order || '[]'); } catch(e){ featOrder = []; }
+    var featured = active.filter(function(s){ return String(s.Featured).toLowerCase()==='true'; });
+    featured.sort(function(a,b){ return featOrder.indexOf(a.Id) - featOrder.indexOf(b.Id); });
+    window.sfFeatured = featured;
+    window.sfAllServices = active;
+
+    body.innerHTML =
+      '<div class="card"><div class="card-title">ບໍລິການແນະນຳ (ລຳດັບການສະແດງຢູ່ໜ້າຮ້ານ)</div>'+
+      '<div id="featList">'+renderFeaturedListHtml()+'</div></div>'+
+      '<div class="card"><div class="card-title">ບໍລິການທັງໝົດ (ຕິກເພື່ອເພີ່ມ/ຖອນອອກຈາກແນະນຳ)</div>'+
+      '<div class="table-wrap"><table><thead><tr><th></th><th>ຮູບ</th><th>ຊື່ບໍລິການ</th><th>ໝວດ</th><th>ລາຄາ</th></tr></thead><tbody>'+
       active.map(function(s){
         var checked = String(s.Featured).toLowerCase()==='true' ? 'checked' : '';
+        var img = s.Image || 'https://placehold.co/60x60?text=No+Img';
         return '<tr><td><input type="checkbox" '+checked+' onchange="toggleFeatured(\''+s.Id+'\',this.checked)"></td>'+
+          '<td><img src="'+img+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;" onerror="this.src=\'https://placehold.co/60x60?text=No+Img\'"></td>'+
           '<td>'+s.Name+'</td><td>'+(s.Category||'-')+'</td><td>'+fmtMoney(s.Price)+'</td></tr>';
       }).join('') + '</tbody></table></div>'+
       '<div style="font-size:12px;color:var(--muted);margin-top:10px;">ໝາຍເຫດ: ຖ້າບໍ່ໄດ້ຕິກເລືອກເລີຍ ລະບົບຈະສະແດງບໍລິການ 8 ລາຍການທຳອິດແທນອັດຕະໂນມັດ</div></div>';
   }, true);
 }
+function renderFeaturedListHtml(){
+  var featured = window.sfFeatured || [];
+  if (!featured.length) return '<div class="empty-state">ຍັງບໍ່ໄດ້ເລືອກບໍລິການແນະນຳ — ຕິກເລືອກຈາກຕາຕະລາງລຸ່ມນີ້</div>';
+  return featured.map(function(s,i){
+    var img = s.Image || 'https://placehold.co/80x60?text=No+Img';
+    return '<div style="display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">'+
+      '<img src="'+img+'" style="width:64px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;" onerror="this.src=\'https://placehold.co/80x60?text=No+Img\'">'+
+      '<div style="flex:1;min-width:0;"><b>'+s.Name+'</b><br><span style="font-size:11.5px;color:var(--muted);">'+(s.Category||'')+' • '+fmtMoney(s.Price)+'</span></div>'+
+      '<div style="display:flex;gap:6px;flex-shrink:0;">'+
+      (i>0?'<button class="btn btn-outline btn-sm" onclick="moveFeatured('+i+',-1)"><i class="fa-solid fa-arrow-up"></i></button>':'')+
+      (i<featured.length-1?'<button class="btn btn-outline btn-sm" onclick="moveFeatured('+i+',1)"><i class="fa-solid fa-arrow-down"></i></button>':'')+
+      '<button class="btn btn-outline btn-sm" onclick="editFeaturedService(\''+s.Id+'\')" title="ແກ້ໄຂ"><i class="fa-solid fa-pen"></i></button>'+
+      '</div></div>';
+  }).join('');
+}
+function moveFeatured(i, dir){
+  var arr = window.sfFeatured, j = i+dir;
+  if (j<0||j>=arr.length) return;
+  var tmp = arr[i]; arr[i]=arr[j]; arr[j]=tmp;
+  saveFeaturedOrder();
+}
+function saveFeaturedOrder(){
+  var order = window.sfFeatured.map(function(s){ return s.Id; });
+  google.script.run.withSuccessHandler(function(){
+    STATE.settings.featured_order = JSON.stringify(order);
+    var el = document.getElementById('featList');
+    if (el) el.innerHTML = renderFeaturedListHtml();
+    toast('ບັນທຶກລຳດັບແລ້ວ');
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiSetSetting('featured_order', JSON.stringify(order), STATE.user.Id);
+}
 function toggleFeatured(id, val){
   google.script.run.withSuccessHandler(function(){
-    invalidate('Services'); toast('ອັບເດດແລ້ວ');
+    invalidate('Services'); toast('ອັບເດດແລ້ວ'); renderSfFeatured();
   }).withFailureHandler(function(e){toast(e.message,'error');}).apiUpdate('Services', id, {Featured: val?'true':'false'}, STATE.user.Id);
+}
+function editFeaturedService(id){
+  var svc = window.sfAllServices.find(function(x){ return x.Id===id; });
+  getServiceFields(function(fields){
+    window.currentCrudEntity = 'Services';
+    window.currentCrudFields = fields;
+    openCrudForm('Services', svc);
+  });
 }
 
 /* ================= PATIENTS (custom) ================= */
@@ -1359,20 +1439,28 @@ function renderLab(){
 }
 
 /* ================= SERVICES ================= */
+var SERVICE_FIELDS_CACHE = null;
+function getServiceFields(cb){
+  google.script.run.withSuccessHandler(function(cats){
+    SERVICE_FIELDS_CACHE = [
+      {key:'Code',label:'ລະຫັດ'},{key:'Name',label:'ຊື່ບໍລິການ',full:true},
+      {key:'Category',label:'ໝວດໝູ່',type:'select',options: cats.length ? cats : ['General']},
+      {key:'Duration',label:'ໄລຍະເວລາ (ນາທີ)',type:'number'},{key:'Price',label:'ລາຄາ',type:'number'},
+      {key:'Cost',label:'ຕົ້ນທຶນ',type:'number'},{key:'Commission',label:'ຄ່າຄອມມິສຊັ່ນ (%)',type:'number'},
+      {key:'Image',label:'URL ຮູບພາບ (ສະແດງໜ້າຮ້ານ)',full:true},
+      {key:'Featured',label:'ບໍລິການແນະນຳ? (ສະແດງໃນໜ້າຮ້ານ)',type:'checkbox',default:'false'},
+      {key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
+    ];
+    cb(SERVICE_FIELDS_CACHE);
+  }).withFailureHandler(function(e){ toast(e.message,'error'); cb([]); }).apiCategoryList();
+}
 function renderServices(){
-  var fields = [
-    {key:'Code',label:'ລະຫັດ'},{key:'Name',label:'ຊື່ບໍລິການ',full:true},
-    {key:'Category',label:'ໝວດໝູ່',type:'select',options:['General','Aesthetic','Laser','Injectable','Facial','Body','Hair']},
-    {key:'Duration',label:'ໄລຍະເວລາ (ນາທີ)',type:'number'},{key:'Price',label:'ລາຄາ',type:'number'},
-    {key:'Cost',label:'ຕົ້ນທຶນ',type:'number'},{key:'Commission',label:'ຄ່າຄອມມິສຊັ່ນ (%)',type:'number'},
-    {key:'Image',label:'URL ຮູບພາບ (ສະແດງໜ້າຮ້ານ)',full:true},
-    {key:'Featured',label:'ບໍລິການແນະນຳ? (ສະແດງໃນໜ້າຮ້ານ)',type:'checkbox',default:'false'},
-    {key:'Status',label:'ສະຖານະ',type:'select',options:['Active','Inactive'],default:'Active'}
-  ];
   var columns = [{key:'Code',label:'ລະຫັດ'},{key:'Name',label:'ຊື່ບໍລິການ'},{key:'Category',label:'ໝວດ'},{key:'Price',label:'ລາຄາ',type:'money'},
     {key:'Featured',label:'ແນະນຳ',render:function(r){return String(r.Featured).toLowerCase()==='true' ? '<span class="chip chip-blue">ແມ່ນ</span>' : '-';}},
     {key:'Status',label:'ສະຖານະ',type:'status'}];
-  renderCrudPage('Services', columns, fields);
+  getServiceFields(function(fields){
+    renderCrudPage('Services', columns, fields);
+  });
 }
 
 /* ================= TREATMENTS ================= */
