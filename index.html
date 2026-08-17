@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="lo">
 <head>
-<base target="_top">
 <meta charset="utf-8">
 <title>ຫລັງບ້ານ - Clinic Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f766e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -37,6 +38,11 @@ body{margin:0;font-family:'Noto Sans Lao','Inter',sans-serif;background:var(--bg
 a{color:inherit;text-decoration:none;}
 button{font-family:inherit;}
 
+/* ===== CONFIG / CONNECTION BANNER ===== */
+.cfg-banner{background:#fef3c7;color:#92400e;font-size:12.5px;padding:12px 20px;display:none;align-items:center;gap:10px;position:sticky;top:0;z-index:500;}
+.cfg-banner.show{display:flex;}
+.cfg-banner button{margin-left:auto;background:#92400e;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11.5px;cursor:pointer;flex-shrink:0;}
+
 /* ===== LOGIN ===== */
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary),#0b3d3a 60%, #052a27);padding:20px;}
 .login-card{background:var(--surface);width:100%;max-width:400px;border-radius:24px;padding:40px 32px;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center;}
@@ -49,6 +55,7 @@ button{font-family:inherit;}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);}
 .btn{border:none;border-radius:12px;padding:12px 18px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:transform .1s, opacity .15s;}
 .btn:active{transform:scale(.97);}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
 .btn-primary{background:linear-gradient(135deg,var(--primary),#115e59);color:#fff;width:100%;}
 .btn-gold{background:linear-gradient(135deg,var(--accent),#a5811a);color:#fff;}
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
@@ -159,6 +166,9 @@ tr:hover td{background:var(--bg);}
 .loading-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
+.boot-spin{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary),#0b3d3a 60%, #052a27);color:#fff;flex-direction:column;gap:14px;}
+.boot-spin .loading-spin{width:32px;height:32px;border-width:3px;}
+
 .timeline{border-left:2px solid var(--border);margin-left:8px;padding-left:20px;}
 .timeline-item{position:relative;padding-bottom:20px;}
 .timeline-item::before{content:'';position:absolute;left:-26px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--primary);border:3px solid var(--surface);}
@@ -181,8 +191,21 @@ tr:hover td{background:var(--bg);}
 
 <div class="toast-wrap" id="toastWrap"></div>
 
+<!-- ============ CORS / CONFIG WARNING BANNER ============ -->
+<div class="cfg-banner" id="cfgBanner">
+  <i class="fa-solid fa-triangle-exclamation"></i>
+  <span id="cfgBannerText">ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ API URL</span>
+  <button onclick="location.reload()">ລອງໃໝ່</button>
+</div>
+
+<!-- ============ BOOT SCREEN (ລໍຖ້າກວດສອບ session) ============ -->
+<div class="boot-spin" id="bootScreen">
+  <span class="loading-spin"></span>
+  <span style="font-size:13px;opacity:.85;">ກຳລັງເຊື່ອມຕໍ່ລະບົບ...</span>
+</div>
+
 <!-- ============ LOGIN ============ -->
-<div class="login-wrap" id="loginScreen">
+<div class="login-wrap" id="loginScreen" style="display:none;">
   <div class="login-card">
     <div class="login-logo"><i class="fa-solid fa-spa"></i></div>
     <h1 id="loginTitle">ຄລີນິກຄວາມງາມ</h1>
@@ -254,7 +277,90 @@ tr:hover td{background:var(--bg);}
 </div>
 
 <script>
-/* ================= STATE ================= */
+/* =====================================================================
+ * ການຕັ້ງຄ່າ (CONFIG) — ແກ້ 2 ຄ່ານີ້ໃຫ້ຄືກັນກັບ Index.html ກ່ອນ deploy
+ * ===================================================================== */
+
+// URL ຂອງ Google Apps Script Web App (Deploy > New deployment > Web app), ຕ້ອງລົງທ້າຍດ້ວຍ /exec
+var API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxWrKs4LMPRMuEAhHOoBxfcEPCtb1QGvUkQc-OMquELd6IbK4BIG_qwM47admVvXu38/exec';
+
+// URL ຂອງໜ້າຮ້ານ (Storefront / Index.html) ທີ່ deploy ຢູ່ GitHub Pages
+var STOREFRONT_URL = '';
+
+/* =====================================================================
+ * API CLIENT — fetch() + POST + Content-Type: text/plain (ຫຼີກລ່ຽງ CORS Preflight)
+ * ===================================================================== */
+function gasCall(action, args) {
+  return fetch(API_BASE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ຫ້າມໃຊ້ application/json
+    body: JSON.stringify({ action: action, args: args || [], token: getToken() })
+  })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' - ເຊື່ອມຕໍ່ Server ບໍ່ໄດ້');
+      return res.json();
+    })
+    .then(function (json) {
+      if (!json.success) {
+        var err = new Error(json.message || 'API Error');
+        err.code = json.code;
+        throw err;
+      }
+      return json.data;
+    });
+}
+
+function getToken() {
+  try { return localStorage.getItem('clinic_token') || ''; } catch (e) { return ''; }
+}
+function setToken(tok) {
+  try { localStorage.setItem('clinic_token', tok || ''); } catch (e) {}
+}
+function clearToken() {
+  try { localStorage.removeItem('clinic_token'); } catch (e) {}
+}
+
+/* ---------------------------------------------------------------------
+ * SHIM: ຈຳລອງ google.script.run.withSuccessHandler().withFailureHandler()
+ * ໂຄ້ດທຸລະກິດຂ້າງລຸ່ມນີ້ (ຄືເກົ່າ 100%) ບໍ່ຕ້ອງແກ້ໄຂຫຍັງເລີຍ
+ * ------------------------------------------------------------------- */
+function createScriptRunner_() {
+  var state = { success: null, failure: null };
+  var proxy = new Proxy({}, {
+    get: function (_target, prop) {
+      if (prop === 'withSuccessHandler') return function (cb) { state.success = cb; return proxy; };
+      if (prop === 'withFailureHandler') return function (cb) { state.failure = cb; return proxy; };
+      return function () {
+        var args = Array.prototype.slice.call(arguments);
+        gasCall(prop, args)
+          .then(function (data) { if (state.success) state.success(data); })
+          .catch(function (err) {
+            // Session ໝົດອາຍຸ / Token ບໍ່ຖືກຕ້ອງ -> ບັງຄັບກັບໄປໜ້າ login
+            if (err.code === 'UNAUTHORIZED') { forceReLogin_(err.message); return; }
+            if (state.failure) state.failure(err); else console.error('GAS API error:', err);
+          });
+      };
+    }
+  });
+  return proxy;
+}
+window.google = window.google || {};
+Object.defineProperty(window.google, 'script', {
+  get: function () { return { run: createScriptRunner_() }; }
+});
+
+function forceReLogin_(msg) {
+  clearToken();
+  try { localStorage.removeItem('clinic_user'); } catch (e) {}
+  toast(msg || 'Session ໝົດອາຍຸ ກະລຸນາເຂົ້າສູ່ລະບົບໃໝ່', 'error');
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('bootScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+/* =====================================================================
+ * STATE
+ * ===================================================================== */
 var STATE = {
   user: null,
   settings: {},
@@ -311,18 +417,46 @@ var MOBILE_NAV = ['dashboard','patients','appointments','queue','invoices'];
 
 /* ================= INIT ================= */
 window.onload = function(){
-  var savedTheme = localStorage.getItem('clinic_theme');
-  var savedLang = localStorage.getItem('clinic_lang');
+  if (!API_BASE_URL || API_BASE_URL.indexOf('script.google.com') === -1) {
+    document.getElementById('bootScreen').style.display = 'none';
+    showCfgBanner('ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ API_BASE_URL ໃຫ້ຖືກຕ້ອງ - ກະລຸນາແກ້ໄຂໃນໄຟລ໌ Admin.html');
+    document.getElementById('loginScreen').style.display = 'flex';
+    return;
+  }
+
+  var savedTheme, savedLang;
+  try { savedTheme = localStorage.getItem('clinic_theme'); savedLang = localStorage.getItem('clinic_lang'); } catch(e){}
   if (savedTheme) { STATE.theme = savedTheme; document.documentElement.setAttribute('data-theme', savedTheme); }
   if (savedLang) { STATE.lang = savedLang; document.getElementById('langSwitch').value = savedLang; }
   loadSettings();
 
-  // ຖ້າມີ session ຄ້າງໄວ້ (login ຄັ້ງກ່ອນ) ໃຫ້ເຂົ້າລະບົບອັດຕະໂນມັດ
-  try {
-    var saved = JSON.parse(localStorage.getItem('clinic_user') || 'null');
-    if (saved && saved.Id) { STATE.user = saved; enterApp(); }
-  } catch(e) {}
+  // ກວດສອບ token ຝັ່ງ server ກ່ອນ (ບໍ່ພຽງແຕ່ເຊື່ອ localStorage) — ຖ້າໝົດອາຍຸ ຈະຖືກສົ່ງກັບໄປໜ້າ login
+  var token = getToken();
+  if (!token) {
+    document.getElementById('bootScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    return;
+  }
+  google.script.run.withSuccessHandler(function(res){
+    document.getElementById('bootScreen').style.display = 'none';
+    if (res && res.success && res.user) {
+      STATE.user = res.user;
+      try { localStorage.setItem('clinic_user', JSON.stringify(res.user)); } catch(e){}
+      enterApp();
+    } else {
+      forceReLogin_('Session ໝົດອາຍຸ ກະລຸນາເຂົ້າສູ່ລະບົບໃໝ່');
+    }
+  }).withFailureHandler(function(e){
+    document.getElementById('bootScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    showCfgBanner('ເຊື່ອມຕໍ່ Backend API ບໍ່ໄດ້ ('+e.message+')');
+  }).apiWhoAmI(token);
 };
+
+function showCfgBanner(msg){
+  document.getElementById('cfgBannerText').textContent = msg;
+  document.getElementById('cfgBanner').classList.add('show');
+}
 
 function loadSettings(){
   google.script.run.withSuccessHandler(function(s){
@@ -350,36 +484,39 @@ function doLogin(){
   document.getElementById('loginError').textContent = '';
   if (!u || !p) { document.getElementById('loginError').textContent = 'ກະລຸນາປ້ອນຊື່ຜູ້ໃຊ້ ແລະ ລະຫັດຜ່ານ'; return; }
   var originalHtml = btn.textContent;
+  btn.disabled = true;
   btn.innerHTML = '<span class="loading-spin"></span>';
   google.script.run.withSuccessHandler(function(res){
+    btn.disabled = false;
     btn.textContent = originalHtml;
     if (res.success) {
       STATE.user = res.user;
-      localStorage.setItem('clinic_user', JSON.stringify(res.user));
+      setToken(res.token); // ເກັບ token ໄວ້ໃຊ້ເອີ້ນ API ອື່ນໆຕໍ່ໄປ
+      try { localStorage.setItem('clinic_user', JSON.stringify(res.user)); } catch(e){}
       enterApp();
     } else {
       document.getElementById('loginError').textContent = res.message;
     }
   }).withFailureHandler(function(err){
+    btn.disabled = false;
     btn.textContent = originalHtml;
     document.getElementById('loginError').textContent = 'ຜິດພາດ: ' + err.message;
   }).apiLogin(u, p);
 }
 function doLogout(){
   if (!confirm('ອອກຈາກລະບົບ?')) return;
-  localStorage.removeItem('clinic_user');
+  var token = getToken();
+  // ແຈ້ງ server ໃຫ້ຍົກເລີກ token ນີ້ (ບໍ່ລໍຖ້າຜົນ, ອອກຈາກລະບົບຝັ່ງ client ທັນທີ)
+  gasCall('apiLogout', [token]).catch(function(){});
+  clearToken();
+  try { localStorage.removeItem('clinic_user'); } catch(e){}
   location.reload();
 }
 
-/* ===== GO TO STOREFRONT (view=admin ຖືກຕັດອອກ) ===== */
+/* ===== GO TO STOREFRONT ===== */
 function goStorefront(){
-  try{
-    var url = new URL(window.location.href);
-    url.searchParams.delete('view');
-    window.top.location.href = url.toString();
-  }catch(e){
-    window.top.location.href = window.location.href.split('?')[0];
-  }
+  if (!STOREFRONT_URL) { toast('ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ STOREFRONT_URL - ກະລຸນາແກ້ໄຂໃນໄຟລ໌ Admin.html'); return; }
+  window.location.href = STOREFRONT_URL;
 }
 
 function enterApp(){
@@ -441,11 +578,11 @@ function toast(msg, type){
 }
 
 /* ================= LANG / THEME ================= */
-function setLang(l){ STATE.lang = l; localStorage.setItem('clinic_lang', l); buildNav(); renderPage(STATE.currentPage); }
+function setLang(l){ STATE.lang = l; try{localStorage.setItem('clinic_lang', l);}catch(e){} buildNav(); renderPage(STATE.currentPage); }
 function toggleDark(){
   STATE.theme = STATE.theme === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', STATE.theme);
-  localStorage.setItem('clinic_theme', STATE.theme);
+  try{localStorage.setItem('clinic_theme', STATE.theme);}catch(e){}
 }
 
 /* ================= MODAL ================= */
