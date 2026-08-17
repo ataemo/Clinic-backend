@@ -846,13 +846,26 @@ function sfTab(tab, el){
 function renderSfBanners(){
   var body = document.getElementById('sfBody');
   body.innerHTML = '<div class="card"><div class="card-title">ຈັດການແບນເນີ້ (Banner Slider)'+
-    '<button class="btn btn-primary btn-sm" onclick="openBannerForm()"><i class="fa-solid fa-plus"></i> ເພີ່ມແບນເນີ້</button></div>'+
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">ແນະນຳຂະໜາດຮູບ 1200x500px. ຖ້າໃຊ້ຮູບຈາກ Google Drive ໃຫ້ໃຊ້ລິງແບບ: https://drive.google.com/uc?export=view&id=FILE_ID</div>'+
+    '<div style="display:flex;gap:8px;"><button class="btn btn-outline btn-sm" onclick="previewBanners()"><i class="fa-solid fa-eye"></i> ເບິ່ງຕົວຢ່າງ</button>'+
+    '<button class="btn btn-primary btn-sm" onclick="openBannerForm()"><i class="fa-solid fa-plus"></i> ເພີ່ມແບນເນີ້</button></div></div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">ແນະນຳຂະໜາດຮູບ 1200x500px</div>'+
     '<div id="bannerList"></div></div>';
   var banners = [];
   try { banners = JSON.parse(STATE.settings.banner_slides || '[]'); } catch(e){ banners = []; }
   window.sfBanners = banners;
   renderBannerList();
+}
+function previewBanners(){
+  var banners = window.sfBanners;
+  if (!banners.length) { toast('ຍັງບໍ່ມີແບນເນີ້ໃຫ້ເບິ່ງຕົວຢ່າງ','error'); return; }
+  var html = '<div style="display:flex;flex-direction:column;gap:10px;">' + banners.map(function(b){
+    return '<div style="position:relative;height:150px;border-radius:14px;overflow:hidden;background:url(\''+esc(b.img)+'\') center/cover, var(--bg);">'+
+      '<div style="position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.65),transparent 65%);"></div>'+
+      '<div style="position:absolute;bottom:10px;left:14px;color:#fff;">'+
+      (b.badge?'<span class="chip chip-yellow">'+b.badge+'</span><br>':'')+
+      '<b style="font-size:14px;">'+(b.title||'')+'</b><div style="font-size:11px;opacity:.9;">'+(b.subtitle||'')+'</div></div></div>';
+  }).join('') + '</div>';
+  openModal('ຕົວຢ່າງແບນເນີ້ (ຄືກັນກັບໜ້າຮ້ານ)', html);
 }
 function renderBannerList(){
   var el = document.getElementById('bannerList');
@@ -876,12 +889,32 @@ function openBannerForm(idx){
   var existing = (idx!==undefined) ? window.sfBanners[idx] : null;
   var body = '<div class="field full"><label>URL ຮູບພາບ *</label><input id="bnImg" value="'+esc(existing?existing.img:'')+'" placeholder="https://..."></div>'+
     (existing&&existing.img?'<img src="'+esc(existing.img)+'" style="width:100%;height:120px;object-fit:cover;border-radius:10px;margin-bottom:10px;">':'')+
+    '<div class="field full"><label>ຫຼືອັບໂຫລດຮູບຈາກເຄື່ອງ (ຕ້ອງຕັ້ງຄ່າ DRIVE_FOLDER_ID ໃນ Code.gs ກ່ອນ)</label>'+
+    '<input type="file" id="bnFile" accept="image/*" onchange="uploadBannerImage(this)">'+
+    '<div id="bnUploadStatus" style="font-size:11px;color:var(--muted);margin-top:4px;"></div></div>'+
     '<div class="field full"><label>ຫົວຂໍ້</label><input id="bnTitle" value="'+esc(existing?existing.title:'')+'"></div>'+
     '<div class="field full"><label>ຄຳອະທິບາຍຍ່ອຍ</label><input id="bnSubtitle" value="'+esc(existing?existing.subtitle:'')+'"></div>'+
     '<div class="field full"><label>ປ້າຍ Badge (ຕົວຢ່າງ: ໂປຣໂມຊັ່ນ, ໃໝ່)</label><input id="bnBadge" value="'+esc(existing?existing.badge:'')+'"></div>'+
     '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button>'+
     '<button class="btn btn-primary" onclick="saveBanner('+(idx!==undefined?idx:'null')+')">'+t('save')+'</button></div>';
   openModal(idx!==undefined?'ແກ້ໄຂແບນເນີ້':'ເພີ່ມແບນເນີ້ໃໝ່', body);
+}
+function uploadBannerImage(input){
+  var file = input.files[0];
+  if (!file) return;
+  var status = document.getElementById('bnUploadStatus');
+  status.textContent = 'ກຳລັງອັບໂຫລດ...';
+  var reader = new FileReader();
+  reader.onload = function(){
+    var base64 = reader.result.split(',')[1];
+    google.script.run.withSuccessHandler(function(res){
+      document.getElementById('bnImg').value = res.url;
+      status.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
+    }).withFailureHandler(function(e){
+      status.textContent = 'ຜິດພາດ: ' + e.message;
+    }).apiUploadImage(base64, file.name, file.type);
+  };
+  reader.readAsDataURL(file);
 }
 function saveBanner(idx){
   var b = {
@@ -950,34 +983,60 @@ function saveMarquee(){
 /* ---- ແທັບ 3: ໄອຄອນໝວດໝູ່ ---- */
 function renderSfCategories(){
   fetchList('Services', function(services){
-    var cats = [];
-    services.forEach(function(s){ if (s.Category && cats.indexOf(s.Category)===-1) cats.push(s.Category); });
+    var allCats = [];
+    services.forEach(function(s){ if (s.Category && allCats.indexOf(s.Category)===-1) allCats.push(s.Category); });
+    var order = [];
+    try { order = JSON.parse(STATE.settings.category_order || '[]'); } catch(e){ order = []; }
+    var cats = order.filter(function(c){ return allCats.indexOf(c)>-1; });
+    allCats.forEach(function(c){ if (cats.indexOf(c)===-1) cats.push(c); });
     window.sfCats = cats;
     var icons = {};
     try { icons = JSON.parse(STATE.settings.category_icons||'{}'); } catch(e){ icons={}; }
-    var body = document.getElementById('sfBody');
-    if (!cats.length) { body.innerHTML = '<div class="empty-state"><i class="fa-solid fa-tags"></i>ຍັງບໍ່ມີໝວດໝູ່ (ໄປເພີ່ມ Category ໃນໜ້າ "ບໍລິການ" ກ່ອນ)</div>'; return; }
-    body.innerHTML = '<div class="card"><div class="card-title">ໄອຄອນປະຈຳໝວດໝູ່</div>'+
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">ໃສ່ຊື່ Font Awesome icon ເຊັ່ນ fa-spa, fa-syringe, fa-hand-sparkles (ເບິ່ງລາຍຊື່ໄດ້ທີ່ fontawesome.com/icons) ປ່ອຍວ່າງໄດ້ຖ້າບໍ່ຢາກໃສ່ໄອຄອນ</div>'+
-      cats.map(function(c){
-        var safeId = c.replace(/[^a-zA-Z0-9]/g,'_');
-        return '<div class="field" style="display:flex;align-items:center;gap:10px;"><label style="min-width:160px;margin:0;">'+
-          '<i class="fa-solid '+(icons[c]||'fa-tag')+'" style="width:18px;color:var(--primary);"></i> '+c+'</label>'+
-          '<input id="ci_'+safeId+'" value="'+esc(icons[c]||'')+'" placeholder="fa-spa" style="flex:1;"></div>';
-      }).join('') +
-      '<button class="btn btn-primary" onclick="saveCategoryIcons()" style="margin-top:10px;">'+t('save')+'</button></div>';
+    window.sfTempIcons = icons;
+    if (!cats.length) { document.getElementById('sfBody').innerHTML = '<div class="empty-state"><i class="fa-solid fa-tags"></i>ຍັງບໍ່ມີໝວດໝູ່ (ໄປເພີ່ມ Category ໃນໜ້າ "ບໍລິການ" ກ່ອນ)</div>'; return; }
+    redrawCategoryList();
   });
+}
+function redrawCategoryList(){
+  var cats = window.sfCats;
+  var icons = window.sfTempIcons || {};
+  var body = document.getElementById('sfBody');
+  body.innerHTML = '<div class="card"><div class="card-title">ລຳດັບ ແລະ ໄອຄອນປະຈຳໝວດໝູ່</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">ໃຊ້ປຸ່ມ ↑↓ ເພື່ອຈັດລຳດັບການສະແດງຢູ່ໜ້າຮ້ານ, ໃສ່ Font Awesome icon (ເຊັ່ນ fa-spa) — ຢ່າລືມກົດ "ບັນທຶກ" ຫຼັງແກ້ໄຂ</div>'+
+    cats.map(function(c,i){
+      var safeId = c.replace(/[^a-zA-Z0-9]/g,'_');
+      return '<div class="field" style="display:flex;align-items:center;gap:10px;">'+
+        '<div style="display:flex;gap:4px;">'+
+        (i>0?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',-1)"><i class="fa-solid fa-arrow-up"></i></button>':'')+
+        (i<cats.length-1?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',1)"><i class="fa-solid fa-arrow-down"></i></button>':'')+
+        '</div>'+
+        '<label style="min-width:160px;margin:0;">'+c+'</label>'+
+        '<input id="ci_'+safeId+'" value="'+esc(icons[c]||'')+'" placeholder="fa-spa" style="flex:1;"></div>';
+    }).join('') +
+    '<button class="btn btn-primary" onclick="saveCategoryIcons()" style="margin-top:10px;">'+t('save')+'</button></div>';
+}
+function moveCategory(i, dir){
+  var tempIcons = {};
+  window.sfCats.forEach(function(c){
+    var el = document.getElementById('ci_'+c.replace(/[^a-zA-Z0-9]/g,'_'));
+    if (el) tempIcons[c] = el.value;
+  });
+  var arr = window.sfCats, j = i+dir;
+  if (j<0||j>=arr.length) return;
+  var tmp = arr[i]; arr[i]=arr[j]; arr[j]=tmp;
+  window.sfTempIcons = tempIcons;
+  redrawCategoryList();
 }
 function saveCategoryIcons(){
   var icons = {};
   window.sfCats.forEach(function(c){
-    var safeId = c.replace(/[^a-zA-Z0-9]/g,'_');
-    var v = document.getElementById('ci_'+safeId).value.trim();
-    if (v) icons[c] = v;
+    var el = document.getElementById('ci_'+c.replace(/[^a-zA-Z0-9]/g,'_'));
+    if (el && el.value.trim()) icons[c] = el.value.trim();
   });
+  var updates = { category_icons: JSON.stringify(icons), category_order: JSON.stringify(window.sfCats) };
   google.script.run.withSuccessHandler(function(){
-    STATE.settings.category_icons = JSON.stringify(icons); toast('ບັນທຶກສຳເລັດ'); renderSfCategories();
-  }).withFailureHandler(function(e){toast(e.message,'error');}).apiSetSetting('category_icons', JSON.stringify(icons), STATE.user.Id);
+    Object.assign(STATE.settings, updates); toast('ບັນທຶກສຳເລັດ');
+  }).withFailureHandler(function(e){toast(e.message,'error');}).apiSetSettingsBulk(updates, STATE.user.Id);
 }
 
 /* ---- ແທັບ 4: ບໍລິການແນະນຳ ---- */
@@ -1699,10 +1758,17 @@ function openSettings(){
     '<div class="field"><label>ສະກຸນເງິນ</label><select id="setCurrency"><option value="LAK">LAK</option><option value="THB">THB</option><option value="USD">USD</option></select></div>'+
     '<div class="field"><label>ຄຳນຳໜ້າໃບບິນ</label><input id="setInvPrefix" value="'+esc(s.invoice_prefix)+'"></div>'+
     '<div class="field full"><label>ຂໍ້ຄວາມແລ່ນ (Marquee)</label><input id="setMarquee" value="'+esc(s.marquee_text)+'"></div>'+
+    '<div class="field"><label>ເປີດໃຊ້ OTP ຢືນຢັນຕົວຕົນ (ໜ້າ "ຕິດຕາມ")</label><select id="setOtpEnabled"><option value="false">ປິດ</option><option value="true">ເປີດ</option></select></div>'+
+    '<div class="field"><label>&nbsp;</label></div>'+
+    '<div class="field full"><label>SMS Gateway URL (ຕົວຢ່າງ: https://sms-provider.com/send?to={phone}&msg={message}&key={apikey})</label><input id="setSmsUrl" value="'+esc(s.sms_api_url)+'"></div>'+
+    '<div class="field full"><label>SMS API Key</label><input id="setSmsKey" value="'+esc(s.sms_api_key)+'"></div>'+
     '</div>'+
     '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="saveSettings()">'+t('save')+'</button></div>';
   openModal(t('settings'), body);
-  setTimeout(function(){ document.getElementById('setCurrency').value = s.currency||'LAK'; }, 50);
+  setTimeout(function(){
+    document.getElementById('setCurrency').value = s.currency||'LAK';
+    document.getElementById('setOtpEnabled').value = s.otp_enabled==='true' ? 'true' : 'false';
+  }, 50);
 }
 function saveSettings(){
   var updates = {
@@ -1714,7 +1780,10 @@ function saveSettings(){
     accent_color: document.getElementById('setAccent').value,
     currency: document.getElementById('setCurrency').value,
     invoice_prefix: document.getElementById('setInvPrefix').value,
-    marquee_text: document.getElementById('setMarquee').value
+    marquee_text: document.getElementById('setMarquee').value,
+    otp_enabled: document.getElementById('setOtpEnabled').value,
+    sms_api_url: document.getElementById('setSmsUrl').value,
+    sms_api_key: document.getElementById('setSmsKey').value
   };
   google.script.run.withSuccessHandler(function(){
     closeModal(); loadSettings(); toast('ບັນທຶກການຕັ້ງຄ່າແລ້ວ');
