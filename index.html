@@ -1003,7 +1003,7 @@ function saveMarquee(){
   }).withFailureHandler(function(e){toast(e.message,'error');}).apiSetSetting('marquee_text', val, STATE.user.Id);
 }
 
-/* ---- ແທັບ 3: ຈັດການໝວດໝູ່ (ໃໝ່: ເພີ່ມ/ແກ້ຊື່/ລຶບໄດ້) ---- */
+/* ---- ແທັບ 3: ຈັດການໝວດໝູ່ (ບັດຮູບໄອຄອນ + Popup ຟອມ) ---- */
 function renderSfCategories(){
   document.getElementById('sfBody').innerHTML = '<div class="empty-state">ກຳລັງໂຫລດ...</div>';
   google.script.run.withSuccessHandler(function(cats){
@@ -1014,81 +1014,123 @@ function renderSfCategories(){
     redrawCategoryList();
   }).withFailureHandler(function(e){ toast(e.message,'error'); }).apiCategoryList();
 }
+
+function catIconInner(name){
+  var v = (window.sfTempIcons||{})[name];
+  if (v && /^https?:\/\//.test(v)) return '<img src="'+esc(v)+'" style="width:100%;height:100%;object-fit:cover;">';
+  if (v) return '<i class="fa-solid '+v+'" style="font-size:26px;color:var(--primary);"></i>';
+  return '<i class="fa-solid fa-tag" style="font-size:26px;color:var(--muted);"></i>';
+}
+
 function redrawCategoryList(){
   var cats = window.sfCats;
-  var icons = window.sfTempIcons || {};
   var body = document.getElementById('sfBody');
-  body.innerHTML = '<div class="card"><div class="card-title">ຈັດການໝວດໝູ່ບໍລິການ'+
-    '<button class="btn btn-primary btn-sm" onclick="openAddCategoryForm()"><i class="fa-solid fa-plus"></i> ເພີ່ມໝວດໝູ່</button></div>'+
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;">↑↓ ຈັດລຳດັບ, ໃສ່ Font Awesome icon (ເຊັ່ນ fa-spa), ແກ້ໄຂ/ລຶບໄດ້ໂດຍກົງ — ຢ່າລືມກົດ "ບັນທຶກລຳດັບ/ໄອຄອນ" ຫຼັງແກ້</div>'+
-    (cats.length ? cats.map(function(c,i){
-      var safeId = c.replace(/[^a-zA-Z0-9]/g,'_');
-      return '<div class="field" style="display:flex;align-items:center;gap:10px;">'+
-        '<div style="display:flex;gap:4px;">'+
-        (i>0?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',-1)"><i class="fa-solid fa-arrow-up"></i></button>':'')+
-        (i<cats.length-1?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',1)"><i class="fa-solid fa-arrow-down"></i></button>':'')+
-        '</div>'+
-        '<label style="min-width:140px;margin:0;">'+c+'</label>'+
-        '<input id="ci_'+safeId+'" value="'+esc(icons[c]||'')+'" placeholder="fa-spa" style="flex:1;">'+
-        '<button class="btn btn-outline btn-sm" onclick="renameCategory(\''+c+'\')" title="ແກ້ໄຂຊື່"><i class="fa-solid fa-pen"></i></button>'+
-        '<button class="btn btn-danger btn-sm" onclick="deleteCategory(\''+c+'\')" title="ລຶບ"><i class="fa-solid fa-trash"></i></button>'+
-        '</div>';
-    }).join('') : '<div class="empty-state"><i class="fa-solid fa-tags"></i>ຍັງບໍ່ມີໝວດໝູ່ — ກົດ "ເພີ່ມໝວດໝູ່" ເພື່ອສ້າງໃໝ່</div>') +
-    (cats.length ? '<button class="btn btn-primary" onclick="saveCategoryIcons()" style="margin-top:10px;">ບັນທຶກລຳດັບ/ໄອຄອນ</button>' : '') +
+  body.innerHTML =
+    '<div class="card"><div class="card-title">ຈັດການໝວດໝູ່ບໍລິການ'+
+    '<button class="btn btn-primary btn-sm" onclick="openCategoryForm()"><i class="fa-solid fa-plus"></i> ເພີ່ມໝວດໝູ່</button></div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">ໃຊ້ປຸ່ມ ↑↓ ຈັດລຳດັບການສະແດງໃນໜ້າຮ້ານ, ກົດ <i class="fa-solid fa-pen"></i> ເພື່ອແກ້ໄຂຊື່/ຮູບໄອຄອນ</div>'+
+    (cats.length ?
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:18px;">' +
+      cats.map(function(c,i){
+        var safe = c.replace(/'/g,"\\'");
+        return '<div style="text-align:center;">'+
+          '<div style="width:80px;height:80px;margin:0 auto 8px;border-radius:20px;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;">'+
+          catIconInner(c) + '</div>'+
+          '<div style="font-size:12.5px;font-weight:600;margin-bottom:6px;word-break:break-word;">'+c+'</div>'+
+          '<div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;">'+
+          (i>0?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',-1)" title="ຍ້າຍຂຶ້ນ"><i class="fa-solid fa-arrow-up"></i></button>':'')+
+          (i<cats.length-1?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',1)" title="ຍ້າຍລົງ"><i class="fa-solid fa-arrow-down"></i></button>':'')+
+          '<button class="btn btn-outline btn-sm" onclick="openCategoryForm(\''+safe+'\')"><i class="fa-solid fa-pen"></i></button>'+
+          '<button class="btn btn-danger btn-sm" onclick="deleteCategory(\''+safe+'\')"><i class="fa-solid fa-trash"></i></button>'+
+          '</div></div>';
+      }).join('') + '</div>'
+      : '<div class="empty-state"><i class="fa-solid fa-tags"></i>ຍັງບໍ່ມີໝວດໝູ່ — ກົດ "ເພີ່ມໝວດໝູ່" ເພື່ອສ້າງໃໝ່</div>') +
     '</div>';
 }
-function openAddCategoryForm(){
-  var body = '<div class="field full"><label>ຊື່ໝວດໝູ່ໃໝ່</label><input id="newCatName" placeholder="ເຊັ່ນ: Facial"></div>'+
+
+/* ==== Popup ຟອມ ເພີ່ມ/ແກ້ໄຂໝວດໝູ່ ==== */
+function openCategoryForm(existingName){
+  var icons = window.sfTempIcons || {};
+  var curIcon = existingName ? (icons[existingName]||'') : '';
+  var isUrl = curIcon && /^https?:\/\//.test(curIcon);
+  var body =
+    '<div class="field full"><label>ຊື່ໝວດໝູ່ *</label><input id="catName" value="'+esc(existingName||'')+'" placeholder="ເຊັ່ນ: Facial"></div>'+
+    '<div class="field full"><label>ຮູບໄອຄອນ</label>'+
+    '<img id="catIconPreview" src="'+esc(curIcon)+'" style="width:80px;height:80px;object-fit:cover;border-radius:18px;margin-bottom:8px;background:var(--bg);border:1.5px solid var(--border);display:'+(isUrl?'block':'none')+'">'+
+    '<input id="catIconUrl" type="text" value="'+esc(curIcon)+'" placeholder="URL ຮູບພາບ ຫຼື ຊື່ Font Awesome (ເຊັ່ນ fa-spa)" oninput="var im=document.getElementById(\'catIconPreview\');if(/^https?:\\/\\//.test(this.value)){im.src=this.value;im.style.display=\'block\';}else{im.style.display=\'none\';}">'+
+    '<input type="file" accept="image/*" style="margin-top:6px;" onchange="handleCategoryIconUpload(this)">'+
+    '<span id="catIconUpStat" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;"></span></div>'+
     '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button>'+
-    '<button class="btn btn-primary" onclick="submitAddCategory()">ເພີ່ມ</button></div>';
-  openModal('ເພີ່ມໝວດໝູ່ໃໝ່', body);
+    '<button class="btn btn-primary" onclick="submitCategoryForm('+(existingName?("'"+existingName.replace(/'/g,"\\'")+"'"):'null')+')">'+t('save')+'</button></div>';
+  openModal(existingName?'ແກ້ໄຂໝວດໝູ່':'ເພີ່ມໝວດໝູ່ໃໝ່', body);
 }
-function submitAddCategory(){
-  var name = document.getElementById('newCatName').value.trim();
+
+function handleCategoryIconUpload(input){
+  var file = input.files[0];
+  if (!file) return;
+  var status = document.getElementById('catIconUpStat');
+  status.textContent = 'ກຳລັງອັບໂຫລດ...';
+  var reader = new FileReader();
+  reader.onload = function(){
+    var base64 = reader.result.split(',')[1];
+    google.script.run.withSuccessHandler(function(res){
+      document.getElementById('catIconUrl').value = res.url;
+      var im = document.getElementById('catIconPreview');
+      im.src = res.url; im.style.display = 'block';
+      status.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
+    }).withFailureHandler(function(e){ status.textContent = 'ຜິດພາດ: '+e.message; }).apiUploadImage(base64, file.name, file.type);
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitCategoryForm(existingName){
+  var name = document.getElementById('catName').value.trim();
+  var icon = document.getElementById('catIconUrl').value.trim();
   if (!name) { toast('ກະລຸນາປ້ອນຊື່ໝວດໝູ່','error'); return; }
-  google.script.run.withSuccessHandler(function(){
-    closeModal(); toast('ເພີ່ມໝວດໝູ່ສຳເລັດ'); renderSfCategories();
-  }).withFailureHandler(function(e){toast(e.message,'error');}).apiCategoryAdd(name, STATE.user.Id);
+
+  function saveIconThenClose(finalName){
+    window.sfTempIcons[finalName] = icon;
+    if (existingName && existingName !== finalName) delete window.sfTempIcons[existingName];
+    var updates = {
+      category_icons: JSON.stringify(window.sfTempIcons),
+      category_master: JSON.stringify(window.sfCats),
+      category_order: JSON.stringify(window.sfCats)
+    };
+    google.script.run.withSuccessHandler(function(){
+      Object.assign(STATE.settings, updates);
+      closeModal(); toast('ບັນທຶກສຳເລັດ'); renderSfCategories();
+    }).withFailureHandler(function(e){toast(e.message,'error');}).apiSetSettingsBulk(updates, STATE.user.Id);
+  }
+
+  if (!existingName) {
+    google.script.run.withSuccessHandler(function(list){ window.sfCats = list; saveIconThenClose(name); })
+      .withFailureHandler(function(e){toast(e.message,'error');}).apiCategoryAdd(name, STATE.user.Id);
+  } else if (existingName !== name) {
+    google.script.run.withSuccessHandler(function(list){ window.sfCats = list; saveIconThenClose(name); })
+      .withFailureHandler(function(e){toast(e.message,'error');}).apiCategoryRename(existingName, name, STATE.user.Id);
+  } else {
+    saveIconThenClose(name);
+  }
 }
-function renameCategory(oldName){
-  var name = prompt('ປ້ອນຊື່ໝວດໝູ່ໃໝ່:', oldName);
-  if (!name || !name.trim() || name.trim()===oldName) return;
-  google.script.run.withSuccessHandler(function(){
-    invalidate('Services'); toast('ແກ້ໄຂຊື່ໝວດໝູ່ສຳເລັດ'); renderSfCategories();
-  }).withFailureHandler(function(e){toast(e.message,'error');}).apiCategoryRename(oldName, name.trim(), STATE.user.Id);
-}
+
 function deleteCategory(name){
   if (!confirm('ຢືນຢັນລຶບໝວດໝູ່ "'+name+'"?')) return;
   google.script.run.withSuccessHandler(function(){
+    delete window.sfTempIcons[name];
+    var iconsJson = JSON.stringify(window.sfTempIcons);
+    google.script.run.withSuccessHandler(function(){ STATE.settings.category_icons = iconsJson; })
+      .apiSetSetting('category_icons', iconsJson, STATE.user.Id);
     toast('ລຶບໝວດໝູ່ສຳເລັດ'); renderSfCategories();
   }).withFailureHandler(function(e){toast(e.message,'error');}).apiCategoryDelete(name, STATE.user.Id);
 }
+
 function moveCategory(i, dir){
-  var tempIcons = {};
-  window.sfCats.forEach(function(c){
-    var el = document.getElementById('ci_'+c.replace(/[^a-zA-Z0-9]/g,'_'));
-    if (el) tempIcons[c] = el.value;
-  });
   var arr = window.sfCats, j = i+dir;
   if (j<0||j>=arr.length) return;
   var tmp = arr[i]; arr[i]=arr[j]; arr[j]=tmp;
-  window.sfTempIcons = tempIcons;
-  redrawCategoryList();
-}
-function saveCategoryIcons(){
-  var icons = {};
-  window.sfCats.forEach(function(c){
-    var el = document.getElementById('ci_'+c.replace(/[^a-zA-Z0-9]/g,'_'));
-    if (el && el.value.trim()) icons[c] = el.value.trim();
-  });
-  var updates = {
-    category_icons: JSON.stringify(icons),
-    category_master: JSON.stringify(window.sfCats),
-    category_order: JSON.stringify(window.sfCats)
-  };
-  google.script.run.withSuccessHandler(function(){
-    Object.assign(STATE.settings, updates); toast('ບັນທຶກສຳເລັດ');
-  }).withFailureHandler(function(e){toast(e.message,'error');}).apiSetSettingsBulk(updates, STATE.user.Id);
+  var updates = { category_master: JSON.stringify(window.sfCats), category_order: JSON.stringify(window.sfCats) };
+  google.script.run.withSuccessHandler(function(){ Object.assign(STATE.settings, updates); redrawCategoryList(); })
+    .withFailureHandler(function(e){toast(e.message,'error');}).apiSetSettingsBulk(updates, STATE.user.Id);
 }
 
 /* ---- ແທັບ 4: ບໍລິການແນະນຳ (ໃໝ່: ຮູບ + ຈັດລຳດັບ + ແກ້ໄຂ) ---- */
