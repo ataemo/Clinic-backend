@@ -1353,7 +1353,7 @@ function renderPatRows(list){
   var tb = document.getElementById('patTbody');
   if (!list.length) { tb.innerHTML = '<tr><td colspan="7" class="empty-state"><i class="fa-solid fa-inbox"></i>ບໍ່ມີຂໍ້ມູນ</td></tr>'; return; }
   tb.innerHTML = list.map(function(p){
-    return '<tr><td><b>'+p.HN+'</b></td><td><a onclick="viewPatientProfile(\''+p.Id+'\')" style="color:var(--primary);cursor:pointer;font-weight:600;">'+p.FullName+'</a></td><td>'+(p.Gender||'-')+'</td><td>'+(p.DOB||'-')+'</td><td>'+(p.Phone||'-')+'</td><td>'+statusChip(p.Status)+'</td>'+
+    return '<tr><td><b>'+p.HN+'</b></td><td><a onclick="viewPatientProfile(\''+p.Id+'\')" style="color:var(--primary);cursor:pointer;font-weight:600;">'+esc(p.FullName)+'</a></td><td>'+(p.Gender||'-')+'</td><td>'+(p.DOB||'-')+'</td><td>'+(p.Phone||'-')+'</td><td>'+statusChip(p.Status)+'</td>'+
       '<td><button class="btn btn-outline btn-sm" onclick="openPatientForm(\''+p.Id+'\')"><i class="fa-solid fa-pen"></i></button></td></tr>';
   }).join('');
 }
@@ -1392,7 +1392,7 @@ function viewPatientProfile(id){
   var p = window.patData.find(function(x){return x.Id===id;});
   var body = '<div style="display:flex;gap:14px;align-items:center;margin-bottom:16px;">'+
     '<div class="avatar" style="width:56px;height:56px;font-size:20px;">'+p.FullName.substring(0,1)+'</div>'+
-    '<div><b style="font-size:16px;">'+p.FullName+'</b><div style="color:var(--muted);font-size:12px;">'+p.HN+' • '+(p.Phone||'-')+'</div></div></div>'+
+    '<div><b style="font-size:16px;">'+esc(p.FullName)+'</b><div style="color:var(--muted);font-size:12px;">'+esc(p.HN)+' • '+esc(p.Phone||'-')+'</div></div></div>'+
     '<div id="ptTimeline"><div class="empty-state">Loading timeline...</div></div>';
   openModal('ປະຫວັດຄົນເຈັບ (Timeline)', body);
   google.script.run.withSuccessHandler(function(items){
