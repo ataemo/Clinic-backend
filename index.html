@@ -1391,6 +1391,8 @@ function renderAppointments(){
   fetchList('Patients', function(patients){
     fetchList('Doctors', function(doctors){
       fetchList('Services', function(services){
+        window.apptPatients = patients;
+        window.apptServices = services;
         var fields = [
           {key:'PatientId', label:'ຄົນເຈັບ', type:'select', options:patients.map(function(p){return {value:p.Id,label:p.FullName+' ('+p.HN+')'};}), full:true},
           {key:'DoctorId', label:'ທ່ານໝໍ', type:'select', options:doctors.map(function(d){return {value:d.Id,label:d.Name};})},
@@ -1406,9 +1408,29 @@ function renderAppointments(){
           {key:'PatientId', label:'ຄົນເຈັບ', render:function(r){return patientName(r.PatientId, patients);}},
           {key:'DoctorId', label:'ທ່ານໝໍ', render:function(r){var d=doctors.find(function(x){return x.Id===r.DoctorId;});return d?d.Name:'-';}},
           {key:'Source', label:'ແຫຼ່ງທີ່ມາ'},
-          {key:'Status', label:'ສະຖານະ', type:'status'}
+          {key:'Promo', label:'ໂປຣ', render:function(r){
+            return r.PromoId ? '<span class="chip chip-red"><i class="fa-solid fa-bolt"></i> '+fmtMoney(r.PromoPrice)+'</span>' : '-';
+          }},
+          {key:'Status', label:'ສະຖານະ', type:'status'},
+          {key:'quickInvoice', label:'', render:function(r){
+            return (r.Status!=='Cancelled') ? '<button class="btn btn-gold btn-sm" onclick="createInvoiceFromAppt(\''+r.Id+'\')"><i class="fa-solid fa-cash-register"></i> ສ້າງໃບບິນ</button>' : '';
+          }}
         ];
         renderCrudPage('Appointments', columns, fields);
+      });
+    });
+  });
+}
+
+function createInvoiceFromAppt(apptId){
+  var appt = window.currentCrudData.find(function(x){ return x.Id===apptId; });
+  if (!appt) return;
+  fetchList('Patients', function(patients){
+    fetchList('Services', function(services){
+      openInvoiceForm({
+        PatientId: appt.PatientId,
+        ServiceId: appt.ServiceId,
+        PromoPrice: appt.PromoId ? Number(appt.PromoPrice) : null
       });
     });
   });
@@ -1767,17 +1789,32 @@ function renderInvoices(){
     }, true);
   });
 }
-function openInvoiceForm(){
+function openInvoiceForm(prefill){
+  prefill = prefill || null;
   fetchList('Patients', function(patients){
     fetchList('Services', function(services){
-      var body = '<div class="field"><label>ຄົນເຈັບ</label><select id="invPatient">'+patients.map(function(p){return '<option value="'+p.Id+'">'+p.FullName+' ('+p.HN+')</option>';}).join('')+'</select></div>'+
-        '<div class="field"><label>ບໍລິການ</label><select id="invService" onchange="updateInvPrice()">'+services.map(function(s){return '<option value="'+s.Id+'" data-price="'+s.Price+'">'+s.Name+' - '+fmtMoney(s.Price)+'</option>';}).join('')+'</select></div>'+
+      var promoNote = (prefill && prefill.PromoPrice != null)
+        ? '<div class="modal-promo-banner" style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1.5px dashed #e11d48;border-radius:12px;padding:10px 12px;margin-bottom:14px;"><b style="color:#e11d48;"><i class="fa-solid fa-bolt"></i> ໃບບິນນີ້ອິງລາຄາໂປຣ Flash Sale</b></div>'
+        : '';
+      var body = promoNote +
+        '<div class="field"><label>ຄົນເຈັບ</label><select id="invPatient">'+patients.map(function(p){
+          var sel = prefill && prefill.PatientId===p.Id ? 'selected' : '';
+          return '<option value="'+p.Id+'" '+sel+'>'+p.FullName+' ('+p.HN+')</option>';
+        }).join('')+'</select></div>'+
+        '<div class="field"><label>ບໍລິການ</label><select id="invService" onchange="updateInvPrice()">'+services.map(function(s){
+          var sel = prefill && prefill.ServiceId===s.Id ? 'selected' : '';
+          return '<option value="'+s.Id+'" data-price="'+s.Price+'" '+sel+'>'+s.Name+' - '+fmtMoney(s.Price)+'</option>';
+        }).join('')+'</select></div>'+
         '<div class="field"><label>ຈຳນວນເງິນລວມ</label><input id="invTotal" type="number" value="0"></div>'+
         '<div class="field"><label>ສ່ວນຫຼຸດ</label><input id="invDiscount" type="number" value="0"></div>'+
         '<div class="field"><label>ຊຳລະທັນທີ (ຖ້າມີ)</label><input id="invPaid" type="number" value="0"></div>'+
         '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="submitInvoice()">ສ້າງໃບບິນ</button></div>';
       openModal('ສ້າງໃບບິນ / POS', body);
-      updateInvPrice();
+      if (prefill && prefill.PromoPrice != null) {
+        document.getElementById('invTotal').value = prefill.PromoPrice; // ລາຄາໂປຣ ບໍ່ແມ່ນລາຄາປົກກະຕິ
+      } else {
+        updateInvPrice();
+      }
     });
   });
 }
