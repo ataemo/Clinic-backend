@@ -547,6 +547,27 @@ function enterApp(){
   buildNav();
   loadSettings();
   goPage('dashboard');
+  startNewOrderWatcher_(); // <-- ເພີ່ມແຖວນີ້
+}
+
+// ເພີ່ມຟັງຊັນໃໝ່ນີ້ຕໍ່ທ້າຍ enterApp()
+var _lastPendingBookings = null;
+function startNewOrderWatcher_(){
+  setInterval(function(){
+    google.script.run.withSuccessHandler(function(s){
+      if (_lastPendingBookings === null) {
+        _lastPendingBookings = s.pendingBookings; // ຄັ້ງທຳອິດ ພຽງແຕ່ບັນທຶກຄ່າ ບໍ່ແຈ້ງເຕືອນ
+        return;
+      }
+      if (s.pendingBookings > _lastPendingBookings) {
+        toast('ມີການຈອງອອນລາຍໃໝ່ເຂົ້າມາ! (' + s.pendingBookings + ' ລາຍການລໍຖ້າຢືນຢັນ)');
+        invalidate('Appointments');
+        if (STATE.currentPage === 'dashboard') renderDashboard();
+        if (STATE.currentPage === 'appointments') renderAppointments();
+      }
+      _lastPendingBookings = s.pendingBookings;
+    }).withFailureHandler(function(){}).apiDashboardStats();
+  }, 45000); // ກວດທຸກ 45 ວິນາທີ
 }
 
 /* ================= NAV ================= */
@@ -680,10 +701,10 @@ function renderCrudPage(entity, columns, formFields, opts){
   window.currentCrudColumns = columns;
   window.currentCrudFields = formFields;
 
-  fetchList(entity, function(list){
+  fetchList(entity, function (list){
     window.currentCrudData = list.filter(function(x){return x.Status!=='Deleted';}).reverse();
     renderCrudRows(window.currentCrudData);
-  }, true);
+  });
 }
 
 function renderCrudRows(list){
@@ -852,7 +873,9 @@ function renderDashboard(){
     return '<div class="quick-btn" onclick="goPage(\''+q.page+'\')"><i class="fa-solid '+q.icon+'"></i>'+q.label+'</div>';
   }).join('');
 
-  google.script.run.withSuccessHandler(function(s){
+  // ໃໝ່: ຮວມເປັນຄັ້ງດຽວ
+  google.script.run.withSuccessHandler(function(boot){
+    var s = boot.stats;
     var cards = [
       {icon:'fa-user-clock', color:'#0f766e', val:s.waitingPatients, lbl:'ຄົນເຈັບກຳລັງລໍຖ້າ'},
       {icon:'fa-calendar-day', color:'#2563eb', val:s.todaysAppointments, lbl:'ນັດໝາຍມື້ນີ້'},
@@ -876,19 +899,15 @@ function renderDashboard(){
     document.getElementById('alertList').innerHTML = alerts.length ? alerts.map(function(a){
       return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);"><i class="fa-solid '+a.icon+'" style="color:'+a.color+';width:20px;"></i><span style="font-size:13px;">'+a.text+'</span></div>';
     }).join('') : '<div class="empty-state"><i class="fa-solid fa-circle-check"></i>ບໍ່ມີການແຈ້ງເຕືອນ</div>';
-  }).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message,'error'); }).apiDashboardStats();
 
-  google.script.run.withSuccessHandler(function(data){
+    var data = boot.revenue;
     var max = Math.max.apply(null, data.map(function(d){return d.revenue;}).concat([1]));
     document.getElementById('revChart').innerHTML = data.length ? '<div style="display:flex;align-items:flex-end;gap:8px;height:140px;">' +
       data.slice(-7).map(function(d){
         var h = Math.max(6, (d.revenue/max)*130);
         return '<div style="flex:1;text-align:center;"><div style="background:linear-gradient(180deg,var(--primary),var(--accent));height:'+h+'px;border-radius:6px 6px 0 0;" title="'+fmtMoney(d.revenue)+'"></div><div style="font-size:10px;color:var(--muted);margin-top:4px;">'+d.date.substring(5)+'</div></div>';
       }).join('') + '</div>' : '<div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div>';
-  }).apiRevenueReport(
-    new Date(Date.now()-30*86400000).toISOString().substring(0,10),
-    new Date().toISOString().substring(0,10)
-  );
+  }).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message,'error'); }).apiDashboardBootstrap();
 }
 
 /* ================= STOREFRONT MANAGER ================= */
@@ -1328,7 +1347,7 @@ function renderPatients(){
   fetchList('Patients', function(list){
     window.patData = list.filter(function(x){return x.Status!=='Deleted';}).reverse();
     renderPatRows(window.patData);
-  }, true);
+  });
 }
 function renderPatRows(list){
   var tb = document.getElementById('patTbody');
@@ -1567,7 +1586,7 @@ function renderPharmacy(){
         '<td>'+m.Stock+(low?' <span class="chip chip-red">ໜ້ອຍ</span>':'')+'</td><td>'+fmtMoney(m.SellPrice)+'</td><td>'+statusChip(m.Status)+'</td>'+
         '<td><button class="btn btn-outline btn-sm" onclick="openMedForm(\''+m.Id+'\')"><i class="fa-solid fa-pen"></i></button></td></tr>';
     }).join('') : '<tr><td colspan="7" class="empty-state">ບໍ່ມີຂໍ້ມູນຢາ</td></tr>';
-  }, true);
+  });
 
   fetchList('Prescriptions', function(pres){
     var pending = pres.filter(function(p){return p.Status==='Pending';});
@@ -1704,7 +1723,7 @@ function renderPhotos(){
           '<img src="'+(p.Url||'https://placehold.co/300x220?text=No+Image')+'" style="width:100%;height:130px;object-fit:cover;">'+
           '<div style="padding:8px 10px;"><b style="font-size:12px;">'+patientName(p.PatientId,patients)+'</b><br><span class="chip chip-blue" style="margin-top:4px;">'+p.PhotoType+'</span> <span style="font-size:11px;color:var(--muted);">'+(p.BodyArea||'')+'</span></div></div>';
       }).join('') + '</div>';
-    }, true);
+    });
   });
 }
 function openPhotoForm(){
@@ -1786,7 +1805,7 @@ function renderInvoices(){
         return '<tr><td><b>'+inv.InvoiceNo+'</b></td><td>'+patientName(inv.PatientId,patients)+'</td><td>'+fmtMoney(inv.Total)+'</td><td>'+fmtMoney(inv.Paid)+'</td><td>'+fmtMoney(inv.Balance)+'</td><td>'+statusChip(inv.Status)+'</td>'+
           '<td>'+(Number(inv.Balance)>0?'<button class="btn btn-gold btn-sm" onclick="openPayForm(\''+inv.Id+'\')">ຊຳລະ</button>':'')+' <button class="btn btn-outline btn-sm" onclick="openRefundForm(\''+inv.Id+'\')">ຄືນເງິນ</button></td></tr>';
       }).join('') : '<tr><td colspan="7" class="empty-state">ບໍ່ມີໃບບິນ</td></tr>';
-    }, true);
+    });
   });
 }
 function openInvoiceForm(prefill){
@@ -2025,7 +2044,7 @@ function renderAudit(){
     document.getElementById('auditTbody').innerHTML = data.length ? data.map(function(a){
       return '<tr><td>'+fmtDate(a.CreatedAt)+'</td><td>'+a.UserId+'</td><td>'+statusChip(a.Action)+'</td><td>'+a.Entity+'</td><td>'+a.EntityId+'</td></tr>';
     }).join('') : '<tr><td colspan="5" class="empty-state">ບໍ່ມີ Log</td></tr>';
-  }, true);
+  });
 }
 
 /* override submitCrudForm for Users to hash password ຝັ່ງ server ແລະ ບໍ່ໃຫ້ overwrite hash ດ້ວຍຄ່າຫວ່າງ */
