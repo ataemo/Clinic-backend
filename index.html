@@ -754,7 +754,7 @@ function handleImageFieldUpload(input, fieldKey){
       im.src = res.url; im.style.display='block';
       status.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
     }).withFailureHandler(function(e){
-      status.textContent = 'ຜິດພາດ: ' + e.message;
+      status.innerHTML = '<span style="color:var(--danger);">⚠ ' + e.message + '</span>';
     }).apiUploadImage(base64, (file.name||'img')+'.jpg', 'image/jpeg');
   });
 }
@@ -986,7 +986,7 @@ function uploadBannerImage(input){
       document.getElementById('bnImg').value = res.url;
       status.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
     }).withFailureHandler(function(e){
-      status.textContent = 'ຜິດພາດ: ' + e.message;
+      status.innerHTML = '<span style="color:var(--danger);">⚠ ' + e.message + '</span>';
     }).apiUploadImage(base64, (file.name||'banner')+'.jpg', 'image/jpeg');
   });
 }
