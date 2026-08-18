@@ -136,6 +136,11 @@ tr:hover td{background:var(--bg);}
 .tab-btn i{font-size:13px;}
 .tab-btn:hover{border-color:var(--primary);color:var(--primary);}
 .tab-btn.active{background:linear-gradient(135deg,var(--primary),#115e59);color:#fff;border-color:var(--primary);box-shadow:0 4px 12px rgba(15,118,110,.3);}
+.tab-row-wrap{display:flex;align-items:center;gap:6px;margin-bottom:16px;}
+.tab-row-wrap .tab-row{margin-bottom:0;flex:1;}
+.tab-scroll-btn{display:none;flex-shrink:0;width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface);align-items:center;justify-content:center;cursor:pointer;color:var(--muted);}
+.tab-scroll-btn:hover{background:var(--bg);color:var(--primary);}
+@media(min-width:641px){ .tab-scroll-btn{display:flex;} }
 .tab-btn.active i{color:#fff;}
 @media(max-width:640px){
   .tab-row{gap:6px;}
@@ -630,6 +635,33 @@ function fmtMoney(n){ n = Number(n||0); return n.toLocaleString() + ' ' + (STATE
 function patientName(pid, patients){ var p = (patients||STATE.cache.Patients||[]).find(function(x){return x.Id===pid;}); return p ? (p.FullName+' ('+p.HN+')') : pid; }
 function esc(s){ return (s===undefined||s===null) ? '' : String(s).replace(/"/g,'&quot;'); }
 
+/* ================= IMAGE RESIZE (ຫຍໍ້ຮູບກ່ອນອັບໂຫລດ) =================
+ * ໃຊ້ canvas ຫຍໍ້ຮູບຝັ່ງ browser ກ່ອນສົ່ງຂຶ້ນ Drive - ປະຫຍັດພື້ນທີ່ ແລະ ໂຫລດໄວຂຶ້ນ
+ * maxDim = ຂະໜາດດ້ານກວ້າງ/ສູງສຸດ (px), quality = ຄຸນນະພາບ JPEG (0-1) */
+function resizeImageToBase64(file, maxDim, quality, callback){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      var dataUrl = canvas.toDataURL('image/jpeg', quality || 0.85);
+      callback(dataUrl.split(',')[1]); // base64 ບໍ່ມີ prefix
+    };
+    img.onerror = function(){ callback(null); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function(){ callback(null); };
+  reader.readAsDataURL(file);
+}
+
 /* ================= GENERIC CRUD TABLE RENDERER ================= */
 function renderCrudPage(entity, columns, formFields, opts){
   opts = opts || {};
@@ -712,10 +744,10 @@ function handleImageFieldUpload(input, fieldKey){
   var file = input.files[0];
   if (!file) return;
   var status = document.getElementById('upstat_'+fieldKey);
-  status.textContent = 'ກຳລັງອັບໂຫລດ...';
-  var reader = new FileReader();
-  reader.onload = function(){
-    var base64 = reader.result.split(',')[1];
+  status.textContent = 'ກຳລັງຫຍໍ້ຮູບ...';
+  resizeImageToBase64(file, 800, 0.85, function(base64){
+    if (!base64) { status.textContent = 'ຜິດພາດ: ອ່ານຮູບບໍ່ໄດ້'; return; }
+    status.textContent = 'ກຳລັງອັບໂຫລດ...';
     google.script.run.withSuccessHandler(function(res){
       document.getElementById('f_'+fieldKey).value = res.url;
       var im = document.getElementById('imgprev_'+fieldKey);
@@ -723,9 +755,8 @@ function handleImageFieldUpload(input, fieldKey){
       status.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
     }).withFailureHandler(function(e){
       status.textContent = 'ຜິດພາດ: ' + e.message;
-    }).apiUploadImage(base64, file.name, file.type);
-  };
-  reader.readAsDataURL(file);
+    }).apiUploadImage(base64, (file.name||'img')+'.jpg', 'image/jpeg');
+  });
 }
 
 function openCrudForm(entity, existing){
@@ -861,13 +892,21 @@ function renderDashboard(){
 /* ================= STOREFRONT MANAGER ================= */
 function renderStorefront(){
   var c = document.getElementById('pageContent');
-  c.innerHTML = '<div class="tab-row" id="sfTabs">'+
+  c.innerHTML = '<div class="tab-row-wrap">'+
+    '<button class="tab-scroll-btn" onclick="scrollTabs(-1)"><i class="fa-solid fa-chevron-left"></i></button>'+
+    '<div class="tab-row" id="sfTabs">'+
     '<div class="tab-btn active" onclick="sfTab(\'banner\',this)"><i class="fa-solid fa-images"></i> ແບນເນີ້</div>'+
     '<div class="tab-btn" onclick="sfTab(\'promo\',this)"><i class="fa-solid fa-gift"></i> ໂປຣໂມຊັ່ນ & ຂໍ້ຄວາມແລ່ນ</div>'+
     '<div class="tab-btn" onclick="sfTab(\'cat\',this)"><i class="fa-solid fa-tags"></i> ໝວດໝູ່</div>'+
     '<div class="tab-btn" onclick="sfTab(\'feat\',this)"><i class="fa-solid fa-star"></i> ບໍລິການແນະນຳ</div>'+
+    '</div>'+
+    '<button class="tab-scroll-btn" onclick="scrollTabs(1)"><i class="fa-solid fa-chevron-right"></i></button>'+
     '</div><div id="sfBody"></div>';
   sfTab('banner', c.querySelector('.tab-btn'));
+}
+function scrollTabs(dir){
+  var el = document.getElementById('sfTabs');
+  if (el) el.scrollBy({left: dir*180, behavior:'smooth'});
 }
 function sfTab(tab, el){
   document.querySelectorAll('#sfTabs .tab-btn').forEach(function(b){b.classList.remove('active');});
@@ -939,18 +978,17 @@ function uploadBannerImage(input){
   var file = input.files[0];
   if (!file) return;
   var status = document.getElementById('bnUploadStatus');
-  status.textContent = 'ກຳລັງອັບໂຫລດ...';
-  var reader = new FileReader();
-  reader.onload = function(){
-    var base64 = reader.result.split(',')[1];
+  status.textContent = 'ກຳລັງຫຍໍ້ຮູບ...';
+  resizeImageToBase64(file, 1200, 0.8, function(base64){
+    if (!base64) { status.textContent = 'ຜິດພາດ: ອ່ານຮູບບໍ່ໄດ້'; return; }
+    status.textContent = 'ກຳລັງອັບໂຫລດ...';
     google.script.run.withSuccessHandler(function(res){
       document.getElementById('bnImg').value = res.url;
       status.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
     }).withFailureHandler(function(e){
       status.textContent = 'ຜິດພາດ: ' + e.message;
-    }).apiUploadImage(base64, file.name, file.type);
-  };
-  reader.readAsDataURL(file);
+    }).apiUploadImage(base64, (file.name||'banner')+'.jpg', 'image/jpeg');
+  });
 }
 function saveBanner(idx){
   var b = {
@@ -1041,24 +1079,74 @@ function redrawCategoryList(){
   body.innerHTML =
     '<div class="card"><div class="card-title">ຈັດການໝວດໝູ່ບໍລິການ'+
     '<button class="btn btn-primary btn-sm" onclick="openCategoryForm()"><i class="fa-solid fa-plus"></i> ເພີ່ມໝວດໝູ່</button></div>'+
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">ໃຊ້ປຸ່ມ ↑↓ ຈັດລຳດັບການສະແດງໃນໜ້າຮ້ານ, ກົດ <i class="fa-solid fa-pen"></i> ເພື່ອແກ້ໄຂຊື່/ຮູບໄອຄອນ</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:16px;"><i class="fa-solid fa-arrows-up-down-left-right"></i> ລາກບັດເພື່ອຈັດລຳດັບການສະແດງໃນໜ້າຮ້ານ, ກົດ <i class="fa-solid fa-pen"></i> ເພື່ອແກ້ໄຂຊື່/ຮູບໄອຄອນ</div>'+
     (cats.length ?
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:18px;">' +
+      '<div id="catDragGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:18px;">' +
       cats.map(function(c,i){
         var safe = c.replace(/'/g,"\\'");
-        return '<div style="text-align:center;">'+
-          '<div style="width:80px;height:80px;margin:0 auto 8px;border-radius:20px;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;">'+
+        return '<div class="cat-drag-card" draggable="true" data-idx="'+i+'" style="text-align:center;cursor:grab;border-radius:14px;padding:6px;transition:.15s;">'+
+          '<div style="width:80px;height:80px;margin:0 auto 8px;border-radius:20px;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:none;">'+
           catIconInner(c) + '</div>'+
-          '<div style="font-size:12.5px;font-weight:600;margin-bottom:6px;word-break:break-word;">'+c+'</div>'+
+          '<div style="font-size:12.5px;font-weight:600;margin-bottom:6px;word-break:break-word;pointer-events:none;">'+c+'</div>'+
           '<div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;">'+
-          (i>0?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',-1)" title="ຍ້າຍຂຶ້ນ"><i class="fa-solid fa-arrow-up"></i></button>':'')+
-          (i<cats.length-1?'<button class="btn btn-outline btn-sm" onclick="moveCategory('+i+',1)" title="ຍ້າຍລົງ"><i class="fa-solid fa-arrow-down"></i></button>':'')+
           '<button class="btn btn-outline btn-sm" onclick="openCategoryForm(\''+safe+'\')"><i class="fa-solid fa-pen"></i></button>'+
           '<button class="btn btn-danger btn-sm" onclick="deleteCategory(\''+safe+'\')"><i class="fa-solid fa-trash"></i></button>'+
           '</div></div>';
       }).join('') + '</div>'
       : '<div class="empty-state"><i class="fa-solid fa-tags"></i>ຍັງບໍ່ມີໝວດໝູ່ — ກົດ "ເພີ່ມໝວດໝູ່" ເພື່ອສ້າງໃໝ່</div>') +
     '</div>';
+  if (cats.length) initCategoryDragDrop();
+}
+
+/* ==== Drag & Drop logic ==== */
+function initCategoryDragDrop(){
+  var grid = document.getElementById('catDragGrid');
+  if (!grid) return;
+  var dragEl = null;
+
+  grid.querySelectorAll('.cat-drag-card').forEach(function(card){
+    card.addEventListener('dragstart', function(){
+      dragEl = card;
+      setTimeout(function(){ card.style.opacity = '0.35'; }, 0);
+    });
+    card.addEventListener('dragend', function(){
+      card.style.opacity = '1';
+      dragEl = null;
+      persistCategoryOrderFromDOM();
+    });
+    card.addEventListener('dragover', function(e){
+      e.preventDefault();
+      if (!dragEl || dragEl === card) return;
+      card.style.background = 'var(--bg)';
+    });
+    card.addEventListener('dragleave', function(){
+      card.style.background = '';
+    });
+    card.addEventListener('drop', function(e){
+      e.preventDefault();
+      card.style.background = '';
+      if (!dragEl || dragEl === card) return;
+      var allCards = Array.prototype.slice.call(grid.querySelectorAll('.cat-drag-card'));
+      var fromIdx = allCards.indexOf(dragEl);
+      var toIdx = allCards.indexOf(card);
+      if (fromIdx < toIdx) card.after(dragEl); else card.before(dragEl);
+    });
+  });
+}
+
+function persistCategoryOrderFromDOM(){
+  var grid = document.getElementById('catDragGrid');
+  if (!grid) return;
+  var newOrder = Array.prototype.slice.call(grid.querySelectorAll('.cat-drag-card')).map(function(card){
+    return window.sfCats[Number(card.getAttribute('data-idx'))];
+  });
+  window.sfCats = newOrder;
+  var updates = { category_master: JSON.stringify(newOrder) };
+  google.script.run.withSuccessHandler(function(){
+    Object.assign(STATE.settings, updates);
+    toast('ບັນທຶກລຳດັບແລ້ວ');
+    redrawCategoryList(); // ອັບເດດ data-idx ໃໝ່ໃຫ້ຖືກຕ້ອງ
+  }).withFailureHandler(function(e){toast(e.message,'error'); redrawCategoryList();}).apiSetSettingsBulk(updates, STATE.user.Id);
 }
 
 /* ==== Popup ຟອມ ເພີ່ມ/ແກ້ໄຂໝວດໝູ່ ==== */
@@ -1078,24 +1166,6 @@ function openCategoryForm(existingName){
   openModal(existingName?'ແກ້ໄຂໝວດໝູ່':'ເພີ່ມໝວດໝູ່ໃໝ່', body);
 }
 
-function handleCategoryIconUpload(input){
-  var file = input.files[0];
-  if (!file) return;
-  var status = document.getElementById('catIconUpStat');
-  status.textContent = 'ກຳລັງອັບໂຫລດ...';
-  var reader = new FileReader();
-  reader.onload = function(){
-    var base64 = reader.result.split(',')[1];
-    google.script.run.withSuccessHandler(function(res){
-      document.getElementById('catIconUrl').value = res.url;
-      var im = document.getElementById('catIconPreview');
-      im.src = res.url; im.style.display = 'block';
-      status.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
-    }).withFailureHandler(function(e){ status.textContent = 'ຜິດພາດ: '+e.message; }).apiUploadImage(base64, file.name, file.type);
-  };
-  reader.readAsDataURL(file);
-}
-
 function submitCategoryForm(existingName){
   var name = document.getElementById('catName').value.trim();
   var icon = document.getElementById('catIconUrl').value.trim();
@@ -1106,8 +1176,7 @@ function submitCategoryForm(existingName){
     if (existingName && existingName !== finalName) delete window.sfTempIcons[existingName];
     var updates = {
       category_icons: JSON.stringify(window.sfTempIcons),
-      category_master: JSON.stringify(window.sfCats),
-      category_order: JSON.stringify(window.sfCats)
+      category_master: JSON.stringify(window.sfCats)
     };
     google.script.run.withSuccessHandler(function(){
       Object.assign(STATE.settings, updates);
