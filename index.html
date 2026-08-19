@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root{
   --primary:#0f766e;
@@ -859,7 +860,12 @@ function renderDashboard(){
   var c = document.getElementById('pageContent');
   c.innerHTML = '<div class="quick-actions" id="qa"></div><div class="stat-grid" id="statGrid"><div class="empty-state">Loading...</div></div>'+
     '<div class="section-grid"><div class="card"><div class="card-title">ລາຍຮັບ 7 ວັນຫຼ້າສຸດ (Revenue Trend)</div><div id="revChart"></div></div>'+
-    '<div class="card"><div class="card-title">ການແຈ້ງເຕືອນ / Alerts</div><div id="alertList"></div></div></div>';
+    '<div class="card"><div class="card-title">ການແຈ້ງເຕືອນ / Alerts</div><div id="alertList"></div></div></div>'+
+    '<div class="card"><div class="card-title">ພາບລວມການຕິດຕາມ (Tracking Overview)</div>'+
+    '<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;">'+
+    '<div style="width:150px;height:150px;flex-shrink:0;"><canvas id="trkOverviewChart"></canvas></div>'+
+    '<div id="trkOverviewLegend" style="flex:1;min-width:220px;font-size:13px;"></div>'+
+    '</div></div>';
 
   var qas = [
     {icon:'fa-user-plus', label:'ຄົນເຈັບໃໝ່', page:'patients'},
@@ -908,6 +914,79 @@ function renderDashboard(){
         return '<div style="flex:1;text-align:center;"><div style="background:linear-gradient(180deg,var(--primary),var(--accent));height:'+h+'px;border-radius:6px 6px 0 0;" title="'+fmtMoney(d.revenue)+'"></div><div style="font-size:10px;color:var(--muted);margin-top:4px;">'+d.date.substring(5)+'</div></div>';
       }).join('') + '</div>' : '<div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div>';
   }).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message,'error'); }).apiDashboardBootstrap();
+
+  renderTrkOverviewChart();  // <-- ເພີ່ມແຖວນີ້
+}
+
+/* ================= TRACKING OVERVIEW CHART (Dashboard) ================= */
+var _trkOverviewChartInstance = null;
+
+function classifyDue_(createdAt, dueDate, defaultDays, isDoneFn, item){
+  var created = new Date(createdAt);
+  var due = dueDate ? new Date(dueDate) : new Date(created.getTime()+defaultDays*86400000);
+  if (isDoneFn(item)) return 'done';
+  return due < new Date() ? 'overdue' : 'upcoming';
+}
+
+function renderTrkOverviewChart(){
+  var totals = {upcoming:0, done:0, overdue:0};
+
+  fetchList('Appointments', function(list){
+    list.forEach(function(a){
+      var due = a.Date ? new Date(a.Date+'T'+(a.Time||'00:00')) : null;
+      var cat = (a.Status==='Completed'||a.Status==='Cancelled') ? 'done' : (due && due<new Date() ? 'overdue' : 'upcoming');
+      totals[cat]++;
+    });
+    drawTrkOverview_(totals);
+  }, true);
+
+  fetchList('Prescriptions', function(list){
+    list.filter(function(p){return p.Status!=='Cancelled';}).forEach(function(p){
+      var cat = classifyDue_(p.CreatedAt, p.DueDate, 3, function(x){return x.Status==='Dispensed';}, p);
+      totals[cat]++;
+    });
+    drawTrkOverview_(totals);
+  }, true);
+
+  fetchList('Invoices', function(list){
+    list.filter(function(x){return x.Status!=='Deleted';}).forEach(function(iv){
+      var cat = classifyDue_(iv.CreatedAt, iv.DueDate, 7, function(x){return Number(x.Balance)<=0;}, iv);
+      totals[cat]++;
+    });
+    drawTrkOverview_(totals);
+  }, true);
+
+  fetchList('FollowUps', function(list){
+    list.forEach(function(f){
+      var cat = classifyDue_(f.CreatedAt, f.DueDate, 7, function(x){return x.Status==='Done'||x.Status==='Cancelled';}, f);
+      totals[cat]++;
+    });
+    drawTrkOverview_(totals);
+  }, true);
+}
+
+function drawTrkOverview_(totals){
+  var canvas = document.getElementById('trkOverviewChart');
+  var legend = document.getElementById('trkOverviewLegend');
+  if (!canvas || !legend || typeof Chart === 'undefined') return;
+  if (_trkOverviewChartInstance) { _trkOverviewChartInstance.destroy(); }
+
+  var total = totals.upcoming + totals.done + totals.overdue;
+  legend.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:10px;height:10px;border-radius:3px;background:#0f766e;display:inline-block;"></span> ທີ່ຈະຮອດ: <b>'+totals.upcoming+'</b></div>'+
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="width:10px;height:10px;border-radius:3px;background:#16a34a;display:inline-block;"></span> ສຳເລັດແລ້ວ: <b>'+totals.done+'</b></div>'+
+    '<div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:3px;background:#e11d48;display:inline-block;"></span> ເກີນກຳນົດ: <b>'+totals.overdue+'</b></div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:8px;">ລວມທັງໝົດ (ນັດໝາຍ + ໃບສັ່ງຢາ + ໃບບິນ + ຕິດຕາມຜົນ): <b>'+total+'</b> ລາຍການ</div>';
+
+  if (!total) return;
+  _trkOverviewChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['ທີ່ຈະຮອດ','ສຳເລັດແລ້ວ','ເກີນກຳນົດ'],
+      datasets: [{ data: [totals.upcoming, totals.done, totals.overdue], backgroundColor: ['#0f766e','#16a34a','#e11d48'], borderWidth: 0 }]
+    },
+    options: { cutout:'65%', plugins:{legend:{display:false}}, maintainAspectRatio:false, animation:{duration:400} }
+  });
 }
 
 /* ================= STOREFRONT MANAGER ================= */
@@ -1558,6 +1637,7 @@ function renderPrescriptions(){
         {key:'Duration', label:'ໄລຍະເວລາ'},
         {key:'Quantity', label:'ຈຳນວນ', type:'number'},
         {key:'ScheduleTimes', label:'ເວລາກິນຢາ (ຕົວຢ່າງ 08:00, 20:00)'},
+        {key:'DueDate', label:'ວັນຄົບກຳນົດຮັບຢາ', type:'date'},
         {key:'Instructions', label:'ຄຳແນະນຳ', full:true, type:'textarea'},
         {key:'Status', label:'ສະຖານະ', type:'select', options:['Pending','Dispensed','Cancelled'], default:'Pending'}
       ];
@@ -1827,6 +1907,7 @@ function openInvoiceForm(prefill){
         '<div class="field"><label>ຈຳນວນເງິນລວມ</label><input id="invTotal" type="number" value="0"></div>'+
         '<div class="field"><label>ສ່ວນຫຼຸດ</label><input id="invDiscount" type="number" value="0"></div>'+
         '<div class="field"><label>ຊຳລະທັນທີ (ຖ້າມີ)</label><input id="invPaid" type="number" value="0"></div>'+
+        '<div class="field"><label>ວັນຄົບກຳນົດຊຳລະ</label><input id="invDueDate" type="date"></div>'+
         '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="submitInvoice()">ສ້າງໃບບິນ</button></div>';
       openModal('ສ້າງໃບບິນ / POS', body);
       if (prefill && prefill.PromoPrice != null) {
@@ -1852,12 +1933,14 @@ function submitInvoice(){
     Tax: 0,
     Total: (Number(document.getElementById('invTotal').value) - Number(document.getElementById('invDiscount').value||0)),
     Paid: document.getElementById('invPaid').value || 0,
+    DueDate: document.getElementById('invDueDate').value || '',
     Branch: STATE.user.Branch || ''
   };
   google.script.run.withSuccessHandler(function(){
     closeModal(); invalidate('Invoices'); toast('ສ້າງໃບບິນສຳເລັດ'); renderInvoices();
   }).withFailureHandler(function(e){toast(e.message,'error');}).apiCreateInvoice(data, STATE.user.Id);
 }
+
 function openPayForm(invId){
   var body = '<div class="field"><label>ຈຳນວນເງິນ</label><input id="payAmount" type="number"></div>'+
     '<div class="field"><label>ວິທີການຊຳລະ</label><select id="payMethod"><option>Cash</option><option>Bank Transfer</option><option>QR Payment</option><option>Card</option></select></div>'+
