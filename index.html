@@ -9,6 +9,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
   --primary:#0f766e;
@@ -182,6 +185,50 @@ tr:hover td{background:var(--bg);}
 .empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
 .empty-state i{font-size:32px;margin-bottom:10px;display:block;}
 
+/* ===== INVOICE PRINT POPUP ===== */
+.inv-print-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:300;align-items:center;justify-content:center;padding:20px;}
+.inv-print-overlay.active{display:flex;}
+.inv-print-card{background:#fff;color:#0f172a;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;border-radius:20px;padding:28px 24px 22px;position:relative;font-family:'Noto Sans Lao','Inter',sans-serif;box-shadow:0 24px 60px rgba(0,0,0,.45);}
+.inv-print-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#334155;}
+.inv-print-head{text-align:center;margin-bottom:16px;}
+.inv-print-logo{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;color:#fff;font-size:26px;}
+.inv-print-logo img{width:100%;height:100%;object-fit:cover;}
+.inv-print-shop{display:block;font-size:18px;font-weight:800;}
+.inv-print-sub{font-size:11.5px;color:#64748b;display:block;margin-top:3px;}
+.inv-print-rows{margin:14px 0;}
+.inv-print-row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;}
+.inv-print-row span:first-child{color:#64748b;}
+.inv-print-items{margin:6px 0;}
+.inv-print-items .inv-print-row{color:#334155;}
+.inv-print-grand{font-size:16.5px;font-weight:800;padding-top:8px;color:#0f172a;}
+.inv-print-pay{background:#f8fafc;border:1.5px dashed var(--primary);border-radius:14px;padding:14px;margin-top:16px;text-align:center;}
+.ipp-title{font-size:12.5px;font-weight:700;margin-bottom:8px;}
+.ipp-row{font-size:12px;text-align:left;margin-bottom:3px;color:#334155;}
+.ipp-qr,.ipp-qr-box{width:120px;height:120px;margin:10px auto 0;border-radius:10px;background:#fff;}
+.inv-print-actions{display:flex;gap:10px;margin-top:20px;}
+.inv-print-actions .btn{flex:1;}
+
+/* ===== INVOICE CART (multi-item) ===== */
+.inv-cart-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;}
+.inv-cart-row .icf{flex:1;}
+.inv-cart-row .icf label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-weight:600;}
+.inv-cart-row select,.inv-cart-row input{width:100%;padding:9px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;}
+.inv-cart-qty{width:64px;flex:none;}
+.inv-cart-price{width:100px;flex:none;}
+.inv-cart-line-total{width:100px;flex:none;text-align:right;font-size:13px;font-weight:700;padding-bottom:9px;}
+.inv-cart-remove{flex:none;}
+.inv-cart-summary{border-top:1px dashed var(--border);margin-top:10px;padding-top:10px;}
+.inv-cart-summary-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;}
+.inv-cart-summary-row.grand{font-size:15px;font-weight:800;border-top:1px solid var(--border);margin-top:4px;padding-top:8px;}
+
+hr.inv-hr{border:none;border-top:1px dashed #e2e8f0;margin:10px 0;}
+@media print{
+  body *{visibility:hidden;}
+  .inv-print-card, .inv-print-card *{visibility:visible;}
+  .inv-print-card{position:absolute;top:0;left:0;width:100%;max-width:100%;box-shadow:none;border-radius:0;max-height:none;}
+  .inv-print-close, .inv-print-actions{display:none!important;}
+}
+
 .loading-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
@@ -292,6 +339,18 @@ tr:hover td{background:var(--bg);}
       <div class="modal-close" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></div>
     </div>
     <div id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Invoice Print Popup -->
+<div class="inv-print-overlay" id="invPrintOverlay">
+  <div class="inv-print-card" id="invPrintCard">
+    <div class="inv-print-close" onclick="closeInvPrint()"><i class="fa-solid fa-xmark"></i></div>
+    <div id="invPrintBody"></div>
+    <div class="inv-print-actions">
+      <button class="btn btn-outline" onclick="downloadInvoiceImage()"><i class="fa-solid fa-download"></i> ບັນທຶກຮູບ</button>
+      <button class="btn btn-primary" onclick="doPrintInvoice()"><i class="fa-solid fa-print"></i> ພິມໃບບິນ</button>
+    </div>
   </div>
 </div>
 
@@ -1975,7 +2034,10 @@ function viewInvoiceDetail(id){
   var items = [];
   try { items = JSON.parse(inv.Items||'[]'); } catch(e){}
   var itemsHtml = items.map(function(it){
-    return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;"><span>'+(it.name||'-')+(it.qty?(' x'+it.qty):'')+'</span></div>';
+    var lineTotal = (it.price!=null) ? fmtMoney(Number(it.price)*Number(it.qty||1)) : '';
+    return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;">'+
+      '<span>'+(it.name||'-')+(it.qty?(' x'+it.qty):'')+(it.price!=null?(' @ '+fmtMoney(it.price)):'')+'</span>'+
+      '<b>'+lineTotal+'</b></div>';
   }).join('');
   var body =
     '<div style="font-size:13px;line-height:1.9;">'+
@@ -1999,14 +2061,83 @@ function viewInvoiceDetail(id){
   openModal('ລາຍລະອຽດໃບບິນ '+inv.InvoiceNo, body);
 }
 
+/* ===== INVOICE PRINT POPUP (ໃໝ່) ===== */
 function printInvoicePdf(id){
-  toast('ກຳລັງສ້າງ PDF...');
-  google.script.run.withSuccessHandler(function(res){
+  var inv = window.invData.find(function(x){return x.Id===id;});
+  if (!inv) { toast('ບໍ່ພົບໃບບິນນີ້','error'); return; }
+  var patient = window.invPatients.find(function(x){return x.Id===inv.PatientId;});
+  var s = STATE.settings;
+  var items = [];
+  try { items = JSON.parse(inv.Items||'[]'); } catch(e){}
+
+  var itemsHtml = items.length ? items.map(function(it){
+    var lineTotal = (it.price!=null) ? fmtMoney(Number(it.price)*Number(it.qty||1)) : '';
+    return '<div class="inv-print-row"><span>'+esc(it.name||'-')+(it.qty?(' ×'+it.qty):'')+'</span><b>'+lineTotal+'</b></div>';
+  }).join('') : '<div class="inv-print-row"><span style="color:#94a3b8;">ບໍ່ມີລາຍການ</span></div>';
+
+  var logoHtml = s.logo_url ? '<img src="'+esc(s.logo_url)+'">' : '<i class="fa-solid fa-spa"></i>';
+
+  var payHtml = '';
+  if (Number(inv.Balance) > 0) {
+    payHtml = '<div class="inv-print-pay">'+
+      '<div class="ipp-title"><i class="fa-solid fa-building-columns"></i> ຂໍ້ມູນບັນຊີຮັບເງິນ</div>'+
+      '<div class="ipp-row">ທະນາຄານ: <b>'+esc(s.payment_bank_name||'-')+'</b></div>'+
+      '<div class="ipp-row">ຊື່ບັນຊີ: <b>'+esc(s.payment_account_name||'-')+'</b></div>'+
+      '<div class="ipp-row">ເລກບັນຊີ: <b>'+esc(s.payment_account_number||'-')+'</b></div>'+
+      (s.payment_qr_url
+        ? '<img class="ipp-qr" src="'+esc(s.payment_qr_url)+'">'
+        : '<div class="ipp-qr-box" id="invPrintQr"></div><div style="font-size:10px;color:#94a3b8;margin-top:4px;">*QR ອ້າງອີງ (ບໍ່ແມ່ນ QR ໂອນເງິນຈິງ)</div>')+
+      '</div>';
+  }
+
+  document.getElementById('invPrintBody').innerHTML =
+    '<div class="inv-print-head">'+
+      '<div class="inv-print-logo">'+logoHtml+'</div>'+
+      '<b class="inv-print-shop">'+esc(s.clinic_name_la || s.clinic_name || 'Clinic')+'</b>'+
+      '<span class="inv-print-sub">'+(s.phone_hotline?('<i class="fa-solid fa-phone"></i> '+esc(s.phone_hotline)):'')+'</span>'+
+    '</div>'+
+    '<div class="inv-print-rows">'+
+      '<div class="inv-print-row"><span>ເລກທີ່</span><b>'+esc(inv.InvoiceNo)+'</b></div>'+
+      '<div class="inv-print-row"><span>ວັນທີ</span><b>'+fmtDate(inv.CreatedAt)+'</b></div>'+
+      '<div class="inv-print-row"><span>ລູກຄ້າ</span><b>'+(patient?esc(patient.FullName):'-')+'</b></div>'+
+      '<div class="inv-print-row"><span>ໂທລະສັບ</span><b>'+(patient?esc(patient.Phone||'-'):'-')+'</b></div>'+
+    '</div>'+
+    '<hr class="inv-hr">'+
+    '<div class="inv-print-items">'+itemsHtml+'</div>'+
+    '<hr class="inv-hr">'+
+    '<div class="inv-print-row"><span>ສ່ວນຫຼຸດ</span><b>'+fmtMoney(inv.Discount)+'</b></div>'+
+    '<div class="inv-print-row inv-print-grand"><span>ລວມທັງໝົດ</span><b>'+fmtMoney(inv.Total)+'</b></div>'+
+    '<div class="inv-print-row"><span>ຊຳລະແລ້ວ</span><b>'+fmtMoney(inv.Paid)+'</b></div>'+
+    '<div class="inv-print-row"><span>ຄ້າງຊຳລະ</span><b style="color:var(--danger);">'+fmtMoney(inv.Balance)+'</b></div>'+
+    payHtml;
+
+  document.getElementById('invPrintOverlay').classList.add('active');
+
+  setTimeout(function(){
+    var qrBox = document.getElementById('invPrintQr');
+    if (qrBox && typeof QRCode !== 'undefined') {
+      qrBox.innerHTML = '';
+      new QRCode(qrBox, { text:'INV:'+inv.Id, width:110, height:110, correctLevel: QRCode.CorrectLevel.M });
+    }
+  }, 30);
+}
+
+function closeInvPrint(){
+  document.getElementById('invPrintOverlay').classList.remove('active');
+}
+
+function doPrintInvoice(){
+  window.print();
+}
+
+function downloadInvoiceImage(){
+  var el = document.getElementById('invPrintCard');
+  html2canvas(el, {backgroundColor:'#ffffff', scale:2}).then(function(canvas){
     var link = document.createElement('a');
-    link.href = 'data:'+res.mimeType+';base64,'+res.base64;
-    link.download = res.filename;
-    document.body.appendChild(link); link.click(); link.remove();
-  }).withFailureHandler(function(e){toast(e.message,'error');}).apiExportInvoicePdf(id);
+    link.download = 'invoice.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.92);
+    link.click();
+  }).catch(function(){ toast('ບໍ່ສາມາດບັນທຶກຮູບໄດ້','error'); });
 }
 
 function deleteInvoiceRow(id){
@@ -2015,50 +2146,132 @@ function deleteInvoiceRow(id){
     invalidate('Invoices'); toast('ລຶບໃບບິນແລ້ວ'); renderInvoices();
   }).withFailureHandler(function(e){toast(e.message,'error');}).apiDelete('Invoices', id, STATE.user.Id);
 }
+/* ===== INVOICE CART (multi-item, ໃໝ່) ===== */
+window.INV_CART = [];
+window.INV_CART_SERVICES = [];
+
 function openInvoiceForm(prefill){
   prefill = prefill || null;
   fetchList('Patients', function(patients){
     fetchList('Services', function(services){
+      window.INV_CART_SERVICES = services;
+      window.INV_CART = [];
+
+      if (prefill && prefill.ServiceId) {
+        var svc = services.find(function(s){ return s.Id === prefill.ServiceId; });
+        if (svc) {
+          window.INV_CART.push({
+            ServiceId: svc.Id,
+            name: svc.Name,
+            qty: 1,
+            price: (prefill.PromoPrice != null) ? Number(prefill.PromoPrice) : Number(svc.Price)
+          });
+        }
+      } else if (services.length) {
+        window.INV_CART.push({ ServiceId: services[0].Id, name: services[0].Name, qty: 1, price: Number(services[0].Price) });
+      }
+
       var promoNote = (prefill && prefill.PromoPrice != null)
         ? '<div class="modal-promo-banner" style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);border:1.5px dashed #e11d48;border-radius:12px;padding:10px 12px;margin-bottom:14px;"><b style="color:#e11d48;"><i class="fa-solid fa-bolt"></i> ໃບບິນນີ້ອິງລາຄາໂປຣ Flash Sale</b></div>'
         : '';
+
       var body = promoNote +
         '<div class="field"><label>ຄົນເຈັບ</label><select id="invPatient">'+patients.map(function(p){
           var sel = prefill && prefill.PatientId===p.Id ? 'selected' : '';
           return '<option value="'+p.Id+'" '+sel+'>'+p.FullName+' ('+p.HN+')</option>';
         }).join('')+'</select></div>'+
-        '<div class="field"><label>ບໍລິການ</label><select id="invService" onchange="updateInvPrice()">'+services.map(function(s){
-          var sel = prefill && prefill.ServiceId===s.Id ? 'selected' : '';
-          return '<option value="'+s.Id+'" data-price="'+s.Price+'" '+sel+'>'+s.Name+' - '+fmtMoney(s.Price)+'</option>';
-        }).join('')+'</select></div>'+
-        '<div class="field"><label>ຈຳນວນເງິນລວມ</label><input id="invTotal" type="number" value="0"></div>'+
-        '<div class="field"><label>ສ່ວນຫຼຸດ</label><input id="invDiscount" type="number" value="0"></div>'+
+        '<div style="margin:16px 0 8px;font-weight:700;font-size:13px;">ລາຍການສິນຄ້າ/ບໍລິການ</div>'+
+        '<div id="invCartRows"></div>'+
+        '<button type="button" class="btn btn-outline btn-sm" onclick="invCartAddRow()"><i class="fa-solid fa-plus"></i> ເພີ່ມລາຍການ</button>'+
+        '<div class="field" style="margin-top:16px;"><label>ສ່ວນຫຼຸດ (ຫັກຈາກຍອດລວມ)</label><input id="invDiscount" type="number" value="0" oninput="renderInvCartRows()"></div>'+
         '<div class="field"><label>ຊຳລະທັນທີ (ຖ້າມີ)</label><input id="invPaid" type="number" value="0"></div>'+
         '<div class="field"><label>ວັນຄົບກຳນົດຊຳລະ</label><input id="invDueDate" type="date"></div>'+
+        '<div class="inv-cart-summary" id="invCartSummary"></div>'+
         '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="submitInvoice()">ສ້າງໃບບິນ</button></div>';
+
       openModal('ສ້າງໃບບິນ / POS', body);
-      if (prefill && prefill.PromoPrice != null) {
-        document.getElementById('invTotal').value = prefill.PromoPrice; // ລາຄາໂປຣ ບໍ່ແມ່ນລາຄາປົກກະຕິ
-      } else {
-        updateInvPrice();
-      }
+      renderInvCartRows();
     });
   });
 }
-function updateInvPrice(){
-  var sel = document.getElementById('invService');
-  var price = sel.options[sel.selectedIndex].getAttribute('data-price');
-  document.getElementById('invTotal').value = price;
+
+function renderInvCartRows(){
+  var wrap = document.getElementById('invCartRows');
+  if (!wrap) return;
+  var services = window.INV_CART_SERVICES;
+
+  wrap.innerHTML = window.INV_CART.map(function(item, i){
+    var opts = services.map(function(s){
+      return '<option value="'+s.Id+'" '+(s.Id===item.ServiceId?'selected':'')+'>'+s.Name+'</option>';
+    }).join('');
+    return '<div class="inv-cart-row">'+
+      '<div class="icf" style="flex:2;"><label>ບໍລິການ/ສິນຄ້າ</label><select onchange="invCartSetService('+i+',this.value)">'+opts+'</select></div>'+
+      '<div class="icf inv-cart-qty"><label>ຈຳນວນ</label><input type="number" min="1" value="'+item.qty+'" oninput="invCartSetQty('+i+',this.value)"></div>'+
+      '<div class="icf inv-cart-price"><label>ລາຄາ/ໜ່ວຍ</label><input type="number" min="0" value="'+item.price+'" oninput="invCartSetPrice('+i+',this.value)"></div>'+
+      '<div class="inv-cart-line-total">'+fmtMoney(item.qty*item.price)+'</div>'+
+      (window.INV_CART.length>1 ? '<button type="button" class="btn btn-danger btn-sm inv-cart-remove" onclick="invCartRemoveRow('+i+')"><i class="fa-solid fa-trash"></i></button>' : '<div style="width:38px;"></div>')+
+      '</div>';
+  }).join('');
+
+  renderInvCartSummary();
 }
+
+function invCartAddRow(){
+  var services = window.INV_CART_SERVICES;
+  if (!services.length) { toast('ຍັງບໍ່ມີບໍລິການໃນລະບົບ','error'); return; }
+  window.INV_CART.push({ ServiceId: services[0].Id, name: services[0].Name, qty: 1, price: Number(services[0].Price) });
+  renderInvCartRows();
+}
+function invCartRemoveRow(i){
+  window.INV_CART.splice(i,1);
+  renderInvCartRows();
+}
+function invCartSetService(i, serviceId){
+  var svc = window.INV_CART_SERVICES.find(function(s){ return s.Id === serviceId; });
+  if (!svc) return;
+  window.INV_CART[i].ServiceId = svc.Id;
+  window.INV_CART[i].name = svc.Name;
+  window.INV_CART[i].price = Number(svc.Price);
+  renderInvCartRows();
+}
+function invCartSetQty(i, val){
+  window.INV_CART[i].qty = Math.max(1, Number(val)||1);
+  renderInvCartRows();
+}
+function invCartSetPrice(i, val){
+  window.INV_CART[i].price = Math.max(0, Number(val)||0);
+  renderInvCartRows();
+}
+
+function invCartSubtotal(){
+  return window.INV_CART.reduce(function(s,it){ return s + (it.qty*it.price); }, 0);
+}
+
+function renderInvCartSummary(){
+  var el = document.getElementById('invCartSummary');
+  if (!el) return;
+  var discountEl = document.getElementById('invDiscount');
+  var discount = discountEl ? (Number(discountEl.value)||0) : 0;
+  var subtotal = invCartSubtotal();
+  var total = Math.max(0, subtotal - discount);
+  el.innerHTML =
+    '<div class="inv-cart-summary-row"><span>ຍອດລວມລາຍການ</span><b>'+fmtMoney(subtotal)+'</b></div>'+
+    '<div class="inv-cart-summary-row"><span>ສ່ວນຫຼຸດ</span><b>-'+fmtMoney(discount)+'</b></div>'+
+    '<div class="inv-cart-summary-row grand"><span>ຍອດສຸດທິ</span><b>'+fmtMoney(total)+'</b></div>';
+}
+
 function submitInvoice(){
-  var sel = document.getElementById('invService');
-  var svcName = sel.options[sel.selectedIndex].text;
+  if (!window.INV_CART.length) { toast('ກະລຸນາເພີ່ມຢ່າງໜ້ອຍ 1 ລາຍການ','error'); return; }
+  var subtotal = invCartSubtotal();
+  var discount = Number(document.getElementById('invDiscount').value) || 0;
   var data = {
     PatientId: document.getElementById('invPatient').value,
-    Items: JSON.stringify([{name:svcName, qty:1}]),
-    Discount: document.getElementById('invDiscount').value || 0,
+    Items: JSON.stringify(window.INV_CART.map(function(it){
+      return { name: it.name, qty: it.qty, price: it.price };
+    })),
+    Discount: discount,
     Tax: 0,
-    Total: (Number(document.getElementById('invTotal').value) - Number(document.getElementById('invDiscount').value||0)),
+    Total: Math.max(0, subtotal - discount),
     Paid: document.getElementById('invPaid').value || 0,
     DueDate: document.getElementById('invDueDate').value || '',
     Branch: STATE.user.Branch || ''
