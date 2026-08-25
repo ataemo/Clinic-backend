@@ -361,6 +361,7 @@ hr.inv-hr{border:none;border-top:1px dashed #e2e8f0;margin:10px 0;}
 
 // URL ຂອງ Google Apps Script Web App (Deploy > New deployment > Web app), ຕ້ອງລົງທ້າຍດ້ວຍ /exec
 var API_BASE_URL = 'https://script.google.com/macros/s/AKfycbxWrKs4LMPRMuEAhHOoBxfcEPCtb1QGvUkQc-OMquELd6IbK4BIG_qwM47admVvXu38/exec';
+var APP_KEY = 'ໃສ່ລະຫັດອັນດຽວກັນກັບໃນ Code.gs';
 
 // URL ຂອງໜ້າຮ້ານ (Storefront / Index.html) ທີ່ deploy ຢູ່ GitHub Pages
 var STOREFRONT_URL = 'https://ataemo.github.io/Clinic-Frontend/';
@@ -372,7 +373,7 @@ function gasCall(action, args) {
   return fetch(API_BASE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ຫ້າມໃຊ້ application/json
-    body: JSON.stringify({ action: action, args: args || [], token: getToken() })
+    body: JSON.stringify({ action: action, args: args || [], token: getToken(), appKey: APP_KEY })
   })
     .then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status + ' - ເຊື່ອມຕໍ່ Server ບໍ່ໄດ້');
@@ -1069,6 +1070,9 @@ function renderStorefront(){
     '<div class="tab-btn" onclick="sfTab(\'cat\',this)"><i class="fa-solid fa-tags"></i> ໝວດໝູ່</div>'+
     '<div class="tab-btn" onclick="sfTab(\'feat\',this)"><i class="fa-solid fa-star"></i> ບໍລິການແນະນຳ</div>'+
     '<div class="tab-btn" onclick="sfTab(\'confirm\',this)"><i class="fa-solid fa-receipt"></i> ບັດຢືນຢັນນັດໝາຍ</div>'+
+    '<div class="tab-btn" onclick="sfTab(\'confirmInv\',this)"><i class="fa-solid fa-file-invoice-dollar"></i> ບັດຢືນຢັນໃບບິນ</div>'+
+    '<div class="tab-btn" onclick="sfTab(\'confirmPresc\',this)"><i class="fa-solid fa-prescription"></i> ບັດຢືນຢັນໃບສັ່ງຢາ</div>'+
+    '<div class="tab-btn" onclick="sfTab(\'confirmFollow\',this)"><i class="fa-solid fa-bell"></i> ບັດຢືນຢັນຕິດຕາມອາການ</div>'+
     '</div>'+
     '<button class="tab-scroll-btn" onclick="scrollTabs(1)"><i class="fa-solid fa-chevron-right"></i></button>'+
     '</div><div id="sfBody"></div>';
@@ -1114,6 +1118,9 @@ function sfTab(tab, el){
   else if (tab==='cat') renderSfCategories();
   else if (tab==='feat') renderSfFeatured();
   else if (tab==='confirm') renderSfConfirm();
+  else if (tab==='confirmInv') renderSfConfirmGeneric('ບັດຢືນຢັນໃບບິນ','confirm_invoice_icon','confirm_invoice_icon_img','fa-file-invoice-dollar');
+  else if (tab==='confirmPresc') renderSfConfirmGeneric('ບັດຢືນຢັນໃບສັ່ງຢາ','confirm_presc_icon','confirm_presc_icon_img','fa-prescription');
+  else if (tab==='confirmFollow') renderSfConfirmGeneric('ບັດຢືນຢັນຕິດຕາມອາການ','confirm_followup_icon','confirm_followup_icon_img','fa-bell');
 }
 
 /* ---- ແທັບ 1: ແບນເນີ້ ---- */
@@ -1422,6 +1429,11 @@ function renderSfConfirm(){
     '<div class="form-grid">'+
     '<div class="field"><label>ໄອຄອນ (Font Awesome, ຕົວຢ່າງ: fa-calendar-check)</label><input id="cfIcon" value="'+esc(s.confirm_icon||'fa-calendar-check')+'"></div>'+
     '<div class="field"><label>&nbsp;</label><i class="fa-solid '+(s.confirm_icon||'fa-calendar-check')+'" style="font-size:22px;color:var(--primary);"></i></div>'+
+    '<div class="field full"><label>ຫຼືອັບໂຫລດຮູບໄອຄອນ (ຖ້າມີຮູບ ຈະໃຊ້ຮູບແທນໄອຄອນຂ້າງເທິງ)</label>'+
+    '<img id="cfIconImgPrev" src="'+esc(s.confirm_icon_img||'')+'" style="width:52px;height:52px;object-fit:cover;border-radius:16px;margin-bottom:8px;display:'+(s.confirm_icon_img?'block':'none')+'">'+
+    '<input id="cfIconImg" type="text" value="'+esc(s.confirm_icon_img||'')+'" placeholder="https://..." oninput="var im=document.getElementById(\'cfIconImgPrev\');im.src=this.value;im.style.display=this.value?\'block\':\'none\';">'+
+    '<input type="file" accept="image/*" style="margin-top:6px;" onchange="handleConfirmIconUpload(this,\'cfIconImg\',\'cfIconImgPrev\')">'+
+    '<span id="cfIconImgStat" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;"></span></div>'+
     '<div class="field full"><label>ຫົວຂໍ້ບັດ</label><input id="cfTitle" value="'+esc(s.confirm_title||'ນັດໝາຍຂອງທ່ານ')+'"></div>'+
     '<div class="field full"><label>ຄຳອະທິບາຍຍ່ອຍ</label><input id="cfSubtitle" value="'+esc(s.confirm_subtitle||'')+'"></div>'+
     '<div class="field full"><label>ຮູບປະກອບ (ມຸມຂວາເທິງ, ບໍ່ບັງຄັບ)</label>'+
@@ -1454,6 +1466,7 @@ function uploadConfirmIllust(input){
 function saveConfirmCardSettings(){
   var updates = {
     confirm_icon: document.getElementById('cfIcon').value.trim() || 'fa-calendar-check',
+    confirm_icon_img: document.getElementById('cfIconImg').value.trim(),
     confirm_title: document.getElementById('cfTitle').value.trim(),
     confirm_subtitle: document.getElementById('cfSubtitle').value.trim(),
     confirm_illustration: document.getElementById('cfIllust').value.trim(),
@@ -1464,6 +1477,52 @@ function saveConfirmCardSettings(){
     Object.assign(STATE.settings, updates);
     toast('ບັນທຶກສຳເລັດ');
   }).withFailureHandler(function(e){ toast(e.message,'error'); }).apiSetSettingsBulk(updates, STATE.user.Id);
+}
+
+/* ==== ໜ້າຈັດການໄອຄອນສະເພາະບັດ (ໃບບິນ/ໃບສັ່ງຢາ/ຕິດຕາມອາການ) ==== */
+function renderSfConfirmGeneric(title, iconKey, iconImgKey, defaultIcon){
+  var s = STATE.settings;
+  document.getElementById('sfBody').innerHTML =
+    '<div class="card"><div class="card-title">'+title+' (ຕັ້ງຄ່າໄອຄອນສະເພາະບັດນີ້)</div>'+
+    '<div class="form-grid">'+
+    '<div class="field"><label>ໄອຄອນ (Font Awesome)</label><input id="gcfIcon" value="'+esc(s[iconKey]||defaultIcon)+'"></div>'+
+    '<div class="field"><label>&nbsp;</label><i class="fa-solid '+(s[iconKey]||defaultIcon)+'" style="font-size:22px;color:var(--primary);"></i></div>'+
+    '<div class="field full"><label>ຫຼືອັບໂຫລດຮູບໄອຄອນ (ຖ້າມີຮູບ ຈະໃຊ້ຮູບແທນໄອຄອນຂ້າງເທິງ)</label>'+
+    '<img id="gcfIconImgPrev" src="'+esc(s[iconImgKey]||'')+'" style="width:52px;height:52px;object-fit:cover;border-radius:16px;margin-bottom:8px;display:'+(s[iconImgKey]?'block':'none')+'">'+
+    '<input id="gcfIconImg" type="text" value="'+esc(s[iconImgKey]||'')+'" placeholder="https://..." oninput="var im=document.getElementById(\'gcfIconImgPrev\');im.src=this.value;im.style.display=this.value?\'block\':\'none\';">'+
+    '<input type="file" accept="image/*" style="margin-top:6px;" onchange="handleConfirmIconUpload(this,\'gcfIconImg\',\'gcfIconImgPrev\')">'+
+    '<span id="gcfIconImgStat" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;"></span></div>'+
+    '</div><button class="btn btn-primary" onclick="saveSfConfirmGeneric(\''+iconKey+'\',\''+iconImgKey+'\')">'+t('save')+'</button>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:10px;">ໝາຍເຫດ: ຫົວຂໍ້ບັດ, ຂໍ້ຄວາມເຕືອນ ແລະ ຮູບປະກອບມຸມຂວາເທິງ ໃຊ້ຄ່າດຽວກັບແທັບ "ບັດຢືນຢັນນັດໝາຍ"</div>'+
+    '</div>';
+}
+function saveSfConfirmGeneric(iconKey, iconImgKey){
+  var updates = {};
+  updates[iconKey] = document.getElementById('gcfIcon').value.trim();
+  updates[iconImgKey] = document.getElementById('gcfIconImg').value.trim();
+  google.script.run.withSuccessHandler(function(){
+    Object.assign(STATE.settings, updates);
+    toast('ບັນທຶກສຳເລັດ');
+  }).withFailureHandler(function(e){ toast(e.message,'error'); }).apiSetSettingsBulk(updates, STATE.user.Id);
+}
+
+/* ==== ຟັງຊັນອັບໂຫລດຮູບໄອຄອນ (ໃຊ້ຮ່ວມກັນທຸກແທັບ) ==== */
+function handleConfirmIconUpload(input, fieldId, previewId){
+  var file = input.files[0]; if (!file) return;
+  var statusEl = document.getElementById(fieldId+'Stat');
+  if (statusEl) statusEl.textContent = 'ກຳລັງຫຍໍ້ຮູບ...';
+  resizeImageToBase64(file, 300, 0.85, function(base64){
+    if (!base64) { if(statusEl) statusEl.textContent = 'ຜິດພາດ: ອ່ານຮູບບໍ່ໄດ້'; return; }
+    if (statusEl) statusEl.textContent = 'ກຳລັງອັບໂຫລດ...';
+    google.script.run.withSuccessHandler(function(res){
+      document.getElementById(fieldId).value = res.url;
+      var im = document.getElementById(previewId);
+      if (im) { im.src = res.url; im.style.display='block'; }
+      if (statusEl) statusEl.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
+    }).withFailureHandler(function(e){
+      if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger);">⚠ ' + e.message + '</span>';
+    }).apiUploadImage(base64, (file.name||'icon')+'.jpg', 'image/jpeg');
+  });
 }
 
 /* ---- ແທັບ 4: ບໍລິການແນະນຳ (ໃໝ່: ຮູບ + ຈັດລຳດັບ + ແກ້ໄຂ) ---- */
