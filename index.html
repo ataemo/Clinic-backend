@@ -1948,7 +1948,7 @@ function renderInvoices(){
       window.invPatients = patients;
       document.getElementById('invTbody').innerHTML = window.invData.length ? window.invData.map(function(inv){
         var slipCell = inv.SlipUrl
-          ? '<img src="'+inv.SlipUrl+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="previewSlipImage(\''+inv.SlipUrl+'\')">'
+          ? '<img src="'+inv.SlipUrl+'" style="width:44px;height:44px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="previewSlipImage(\''+inv.SlipUrl+'\')" onerror="this.src=\'https://placehold.co/44x44?text=X\'">'
           : '<span style="font-size:11px;color:var(--muted);">-</span>';
         return '<tr><td><b>'+inv.InvoiceNo+'</b></td><td>'+patientName(inv.PatientId,patients)+'</td><td>'+fmtMoney(inv.Total)+'</td><td>'+fmtMoney(inv.Paid)+'</td><td>'+fmtMoney(inv.Balance)+'</td>'+
           '<td>'+slipCell+'</td><td>'+statusChip(inv.Status)+'</td>'+
