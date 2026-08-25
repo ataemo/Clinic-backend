@@ -1425,7 +1425,7 @@ function renderSfConfirm(){
     '<div class="field full"><label>ຫົວຂໍ້ບັດ</label><input id="cfTitle" value="'+esc(s.confirm_title||'ນັດໝາຍຂອງທ່ານ')+'"></div>'+
     '<div class="field full"><label>ຄຳອະທິບາຍຍ່ອຍ</label><input id="cfSubtitle" value="'+esc(s.confirm_subtitle||'')+'"></div>'+
     '<div class="field full"><label>ຮູບປະກອບ (ມຸມຂວາເທິງ, ບໍ່ບັງຄັບ)</label>'+
-    '<img id="cfIllustPrev" src="'+esc(s.confirm_illustration||'')+'" style="width:70px;height:70px;object-fit:cover;border-radius:50%;margin-bottom:8px;display:'+(s.confirm_illustration?'block':'none')+'">'+
+    '<img id="cfIllustPrev" src="'+esc(s.confirm_illustration||'')+'" style="width:120px;height:120px;object-fit:cover;border-radius:24px;margin-bottom:8px;display:'+(s.confirm_illustration?'block':'none')+'">'+
     '<input id="cfIllust" type="text" value="'+esc(s.confirm_illustration||'')+'" placeholder="https://..." oninput="var im=document.getElementById(\'cfIllustPrev\');im.src=this.value;im.style.display=this.value?\'block\':\'none\';">'+
     '<input type="file" accept="image/*" style="margin-top:6px;" onchange="uploadConfirmIllust(this)">'+
     '<span id="cfIllustStat" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;"></span></div>'+
