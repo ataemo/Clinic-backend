@@ -745,6 +745,32 @@ function resizeImageToBase64(file, maxDim, quality, callback){
   reader.readAsDataURL(file);
 }
 
+/* ==== ຫຍໍ້ຮູບແບບ PNG ຮັກສາພື້ນຫຼັງໂປ່ງໃສ (ໃຊ້ສະເພາະໄອຄອນ) ==== */
+function resizeImagePngToBase64(file, maxDim, callback){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      var dataUrl = canvas.toDataURL('image/png');
+      callback(dataUrl.split(',')[1]);
+    };
+    img.onerror = function(){ callback(null); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function(){ callback(null); };
+  reader.readAsDataURL(file);
+}
+
 /* ================= GENERIC CRUD TABLE RENDERER ================= */
 function renderCrudPage(entity, columns, formFields, opts){
   opts = opts || {};
@@ -1511,7 +1537,7 @@ function handleConfirmIconUpload(input, fieldId, previewId){
   var file = input.files[0]; if (!file) return;
   var statusEl = document.getElementById(fieldId+'Stat');
   if (statusEl) statusEl.textContent = 'ກຳລັງຫຍໍ້ຮູບ...';
-  resizeImageToBase64(file, 300, 0.85, function(base64){
+  resizeImagePngToBase64(file, 400, function(base64){
     if (!base64) { if(statusEl) statusEl.textContent = 'ຜິດພາດ: ອ່ານຮູບບໍ່ໄດ້'; return; }
     if (statusEl) statusEl.textContent = 'ກຳລັງອັບໂຫລດ...';
     google.script.run.withSuccessHandler(function(res){
@@ -1521,7 +1547,7 @@ function handleConfirmIconUpload(input, fieldId, previewId){
       if (statusEl) statusEl.textContent = 'ອັບໂຫລດສຳເລັດ ✓';
     }).withFailureHandler(function(e){
       if (statusEl) statusEl.innerHTML = '<span style="color:var(--danger);">⚠ ' + e.message + '</span>';
-    }).apiUploadImage(base64, (file.name||'icon')+'.jpg', 'image/jpeg');
+    }).apiUploadImage(base64, (file.name||'icon')+'.png', 'image/png');
   });
 }
 
