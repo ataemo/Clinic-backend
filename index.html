@@ -2599,6 +2599,11 @@ function openSettings(){
       '<input id="setPayQr" type="text" value="'+esc(s.payment_qr_url||'')+'" placeholder="https://...">'+
       '<input type="file" accept="image/*" style="margin-top:6px;" onchange="uploadPayQr(this)">'+
       '<span id="payQrUpStat" style="font-size:11px;color:var(--muted);margin-top:4px;display:block;"></span></div>'+
+      '<div class="field full"><label style="font-weight:700;color:var(--primary);">📞 ຊ່ອງທາງຕິດຕໍ່ (ປຸ່ມ "ຕິດຕໍ່" ໜ້າຮ້ານ)</label></div>'+
+      '<div class="field"><label>ເບີໂທລະສັບ (ໃສ່ລະຫັດປະເທດ ບໍ່ໃສ່ + ເຊັ່ນ: 8562091234567)</label><input id="setContactPhone" value="'+esc(s.contact_phone)+'"></div>'+
+      '<div class="field"><label>WhatsApp (ເບີໂທ ບໍ່ໃສ່ + ຫຼືຫຍໍ້ 0)</label><input id="setContactWa" value="'+esc(s.contact_whatsapp)+'"></div>'+
+      '<div class="field"><label>Facebook Messenger (username ຫຼື URL ເຕັມ)</label><input id="setContactMsg" value="'+esc(s.contact_messenger)+'"></div>'+
+      '<div class="field"><label>Line ID (ຫຼື URL ເຕັມ)</label><input id="setContactLine" value="'+esc(s.contact_line)+'"></div>'+
     '</div>'+
     '<div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">'+t('cancel')+'</button><button class="btn btn-primary" onclick="saveSettings()">'+t('save')+'</button></div>';
   openModal(t('settings'), body);
@@ -2624,7 +2629,11 @@ function saveSettings(){
     payment_bank_name: document.getElementById('setPayBank').value,
     payment_account_name: document.getElementById('setPayAccName').value,
     payment_account_number: document.getElementById('setPayAccNo').value,
-    payment_qr_url: document.getElementById('setPayQr').value
+    payment_qr_url: document.getElementById('setPayQr').value,
+    contact_phone: document.getElementById('setContactPhone').value,
+    contact_whatsapp: document.getElementById('setContactWa').value,
+    contact_messenger: document.getElementById('setContactMsg').value,
+    contact_line: document.getElementById('setContactLine').value
   };
   google.script.run.withSuccessHandler(function(){
     closeModal(); loadSettings(); toast('ບັນທຶກການຕັ້ງຄ່າແລ້ວ');
