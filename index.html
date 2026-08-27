@@ -412,9 +412,15 @@ function createScriptRunner_() {
       return function () {
         var args = Array.prototype.slice.call(arguments);
         gasCall(prop, args)
-          .then(function (data) { if (state.success) state.success(data); })
+          .then(function (data) {
+            if (state.success) {
+              try { state.success(data); }
+              catch (renderErr) {
+                console.error('[ໜ້າຈໍ] Error ໃນ action "'+prop+'":', renderErr);
+              }
+            }
+          })
           .catch(function (err) {
-            // Session ໝົດອາຍຸ / Token ບໍ່ຖືກຕ້ອງ -> ບັງຄັບກັບໄປໜ້າ login
             if (err.code === 'UNAUTHORIZED') { forceReLogin_(err.message); return; }
             if (state.failure) state.failure(err); else console.error('GAS API error:', err);
           });
@@ -702,6 +708,7 @@ document.addEventListener('click', function(e){
 function fetchList(entity, cb, force){
   if (STATE.cache[entity] && !force) { cb(STATE.cache[entity]); return; }
   google.script.run.withSuccessHandler(function(list){
+    list = list || [];
     STATE.cache[entity] = list;
     cb(list);
   }).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message,'error'); }).apiList(entity);
@@ -954,7 +961,7 @@ function renderPage(id){
 /* ================= DASHBOARD ================= */
 function renderDashboard(){
   var c = document.getElementById('pageContent');
-  c.innerHTML = '<div class="quick-actions" id="qa"></div><div class="stat-grid" id="statGrid"><div class="empty-state">Loading...</div></div>'+
+  c.innerHTML = '<div class="quick-actions" id="qa"></div><div class="stat-grid" id="statGrid"><div class="empty-state"><span class="loading-spin" style="border-top-color:var(--primary);"></span> Loading...</div></div>'+
     '<div class="section-grid"><div class="card"><div class="card-title">ລາຍຮັບ 7 ວັນຫຼ້າສຸດ (Revenue Trend)</div><div id="revChart"></div></div>'+
     '<div class="card"><div class="card-title">ການແຈ້ງເຕືອນ / Alerts</div><div id="alertList"></div></div></div>'+
     '<div class="card"><div class="card-title">ພາບລວມການຕິດຕາມ (Tracking Overview)</div>'+
@@ -975,8 +982,24 @@ function renderDashboard(){
     return '<div class="quick-btn" onclick="goPage(\''+q.page+'\')"><i class="fa-solid '+q.icon+'"></i>'+q.label+'</div>';
   }).join('');
 
+  // ໃໝ່: ຕັ້ງ timeout — ຖ້າ 8 ວິນາທີແລ້ວຍັງບໍ່ຕອບ ໃຫ້ສະແດງປຸ່ມລອງໃໝ່ແທນ "Loading..." ຄ້າງຕະຫຼອດ
+  var dashboardLoaded = false;
+  var dashboardTimeoutId = setTimeout(function(){
+    if (dashboardLoaded) return;
+    var statGrid = document.getElementById('statGrid');
+    if (statGrid) {
+      statGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">'+
+        '<i class="fa-solid fa-triangle-exclamation" style="color:var(--warn);"></i>'+
+        '<div style="margin-bottom:10px;">ໂຫລດຊ້າ ຫຼື ເຊື່ອມຕໍ່ Server ບໍ່ໄດ້</div>'+
+        '<button class="btn btn-primary btn-sm" onclick="renderDashboard()"><i class="fa-solid fa-rotate-right"></i> ລອງໃໝ່</button>'+
+        '</div>';
+    }
+  }, 8000);
+
   // ໃໝ່: ຮວມເປັນຄັ້ງດຽວ
   google.script.run.withSuccessHandler(function(boot){
+    dashboardLoaded = true;
+    clearTimeout(dashboardTimeoutId);
     var s = boot.stats;
     var cards = [
       {icon:'fa-user-clock', color:'#0f766e', val:s.waitingPatients, lbl:'ຄົນເຈັບກຳລັງລໍຖ້າ'},
@@ -1009,7 +1032,19 @@ function renderDashboard(){
         var h = Math.max(6, (d.revenue/max)*130);
         return '<div style="flex:1;text-align:center;"><div style="background:linear-gradient(180deg,var(--primary),var(--accent));height:'+h+'px;border-radius:6px 6px 0 0;" title="'+fmtMoney(d.revenue)+'"></div><div style="font-size:10px;color:var(--muted);margin-top:4px;">'+d.date.substring(5)+'</div></div>';
       }).join('') + '</div>' : '<div class="empty-state">ຍັງບໍ່ມີຂໍ້ມູນ</div>';
-  }).withFailureHandler(function(e){ toast('ຜິດພາດ: '+e.message,'error'); }).apiDashboardBootstrap();
+  }).withFailureHandler(function(e){
+    dashboardLoaded = true;
+    clearTimeout(dashboardTimeoutId);
+    toast('ຜິດພາດ: '+e.message,'error');
+    var statGrid = document.getElementById('statGrid');
+    if (statGrid) {
+      statGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">'+
+        '<i class="fa-solid fa-circle-exclamation" style="color:var(--danger);"></i>'+
+        '<div style="margin-bottom:10px;">ຜິດພາດ: '+e.message+'</div>'+
+        '<button class="btn btn-primary btn-sm" onclick="renderDashboard()"><i class="fa-solid fa-rotate-right"></i> ລອງໃໝ່</button>'+
+        '</div>';
+    }
+  }).apiDashboardBootstrap();
 
   renderTrkOverviewChart();  // <-- ເພີ່ມແຖວນີ້
 }
